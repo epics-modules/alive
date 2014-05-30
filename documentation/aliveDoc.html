@@ -1,0 +1,86 @@
+<html>
+
+<head>
+<meta http-equiv="Content-Type"
+content="text/html; charset=iso-8859-1">
+<title>aliveDocs</title>
+</head>
+
+<body bgcolor="#FFFFFF">
+
+<h1 align="center">alive module Documentation</h1>
+
+<P><a href="aliveReleaseNotes.html">Release Notes</a>
+
+<h2>Record</h2>
+
+<dl>
+<dt><a href="aliveRecord.html">aliveRecord.html</a></dt>
+<dd>The <b>alive</b> record is used for determining where the
+heartbeat information is sent, as well as the extra environment
+variables that may be requested remotely.</dd>
+<dt><a href="aliveServer.html">aliveServer.html</a></dt>
+<dd>This describes how one can implement a server for receiving and
+processing the heartbeat meassages, as well as making inquiries to the
+alive record about the extra information.</dd>
+</dl>
+
+<h2>EPICS Database</h2>
+
+<dl>
+<dt>alive.db
+<dd>This database is basically a straight implementation of the alive
+  record itself.  It creates a record of the name "$(P)alive".
+  
+  The <strong>RHOST</strong> is defined using "$(RHOST)".  The rest of
+  the fields that can be specified have defaults in them that can be
+  overridden.  The defaults for "$(RPORT)" and "$(LPORT)" are both
+  "5678"; if multiple IOC are to run on the same computer, then the
+  "$(LPORT)" values for each IOC should be different.  Only the first
+  six of the ten environment variable fields, "$(ENV1)" to "$(ENV10)",
+  have defaults, being "ARCH", "TOP", "EPICS_BASE", "SUPPORT",
+  "ENGINEER", and "LOCATION".
+</dl>
+
+
+<h2>MEDM display files</h2>
+
+
+<P>
+
+<dl>
+<dt>aliveRecord.adl<br>
+<dd>This is the medm ADL file for an alive record.  All the fields are
+exposed on this screen.
+
+</dl>
+
+<h2>How to build and use</h2>
+
+<ul>
+
+<li>Edit <code>configure/RELEASE</code> to specify the paths to <b>EPICS
+base</b>.  There are no dependencies on any other modules.</li>
+<li>Run Gnu Make to build.</li>
+<li>Note that the <em>alive</em> module is not useful on its own, as it needs
+  a remote server to send heartbeat information.</li>
+</ul>
+
+<h2>Checking to see if record works</h2>
+
+<ul>
+
+<li>Configure an alive record to talk to a remote server daemon that understands how to talk to this type of record..</li>
+<li>Make sure that the ISUP field is set to "Off"</li>
+<li>Set ITRIG field to "Trigger".  If ITRIG goes back to being "Idle",
+then the remote daemon has read the boot information, meaning the
+record is successfullytalking to the daemon.</li>
+</ul>
+
+<address> 
+    <a href="http://www.aps.anl.gov/About/People/Contact/?name=Dohn__Arms">
+    Dohn Arms</a><br>
+    Advanced Photon Source
+</address>
+</body>
+</html>

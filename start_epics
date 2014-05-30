@@ -1,0 +1,2 @@
+medm -x -macro "P=alive:" aliveApp/op/adl/alive.adl &
+

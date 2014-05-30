@@ -1,0 +1,651 @@
+<html>
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+  <title>aliveRecord</title>
+<style>
+  td, th
+  {
+  padding:5px;
+  }
+</style>
+</head>
+<body>
+
+<h1>alive - IOC Operational Status Record</h1>
+
+<em>
+Note: This record requires a separate program outside of the scope of
+EPICS for it to be useful.  While code is supplied with this module
+for interacting with alive records, it is intended for it to be
+straightforward to create a different implementation.
+</em>
+
+<h1>1. Introduction</h1>
+
+<p>
+The alive record is intended as a way to allow verification that an
+IOC is running.  It is an active system, using heartbeat messages sent
+to a central server, which collects heartbeat messages and monitors
+the IOC statuses.  The alive record also allows for the server to
+query extra information of the IOC, being environment variables
+(specified in the record) and system specific information (vxWorks
+boot line, Linux user, etc.)
+</p><p>
+This system has several important consequences.  The server doesn't
+need to know which IOCs to monitor, as they will self-report
+themselves upon running a correctly configured alive record.  The
+reading of the boot information also allows for real-time knowledge of
+the IOC type and boot parameters.  The monitoring of IOCs is intended
+to be outside of EPICS itself, so there is no needing to link EPICS
+libraries.  EPICS network boundary issues with subnets are avoided, as
+the heartbeat messages are sent as simple UDP packets and the extra
+information is done with a TCP request from the remote server.
+</p><p> 
+This record could be extended to monitor real-time parameters (such as
+memory use, etc.), but that is not what this record is intended for.
+Once a system is known to be up, one should use typical EPICS methods
+for these things (like devIocStats).  However, there is the 32-bit
+<strong>MSG</strong> field ("Message Value" on the screen) which can
+be used to send messages as defined by the user.
+</p>
+
+<img src="aliveRecord.png">
+
+<p><hr>
+<h1>2. Scan Parameters</h1>
+
+<p>
+The alive record has the standard fields for specifying under what
+circumstances the record will be processed.  See the EPICS Record
+Reference Manual for these fields and their use.
+</p><p>
+The typical setting is "10 seconds", which will result in a heartbeat
+being sent every ten seconds.
+</p>
+
+<p><hr>
+<h1>3. Record Fields</h1>
+
+<p>
+The <strong>VAL</strong> field holds the current heartbeat value
+(initially zero), and is incremented each time the record processes.
+The value can't be used for timing, as the <strong>SCAN</strong> rate
+will affect how quickly the values changes.
+</p><p> The heartbeat UDP packets are sent to a remote server using
+the <strong>RHOST</strong> and <strong>RPORT</strong> fields to
+specify address and port. The <strong>RHOST</strong> needs to be the
+IPv4 numeric address, and not a name.  
+</p><p> Unless suppressed, the remote server can attempt to read back
+the environment variables and other information using the TCP port
+specified by
+<strong>LPORT</strong>.  If multiple IOCs are on the same IP address,
+just make sure each alive record uses a unique port.  It should be
+noted that <em>only</em> connections originating
+from <strong>RHOST</strong> will be allowed to connect this way.
+</p><p> The server may employ a magic number to help filter out
+unwanted UDP packets sent to it, and this number is specified in
+the <strong>RMAG</strong> field, and is the first thing sent in the
+heartbeat message; the default corresponds to 0x12345678.  There is a
+field that can be used to send a user-defined message to the
+server, <strong>MSG</strong>, and its usage is left up to the
+implementer.
+</p><p> Names of the environment variables to be sent to the remote
+server upon request are <strong>ENV1</strong>-<strong>ENV10</strong>.
+If the length of the value of a variable is over 65535, an empty
+string will be sent back.
+</p><p> The send a trigger flag to the remote server, signaling that
+it should reread the boot information, <strong>ITRIG</strong> should
+be set to "Trigger".  When the variables have been read, it will
+return to "Idle".  This is also a way to tell that the remote server
+is working correctly, as going back to "Idle" means that the remote
+server has done a read, therefore the communication between the record
+and server works.
+</p><p>If one wants to suppress the server reading the boot
+information, <strong>ISUP</strong> should be set to "On"; the record
+sends a suppress flag to the server, and will immediately close all
+connection that occur.  This is useful if the IOC is behind a firewall
+that won't allow a direct TCP connection, telling the server to not
+endlessly try to read.
+</p>
+
+
+
+<table border>
+<tr>
+<th>Field</th>
+<th>Summary</th>
+<th>Type</th>
+<th>DCT</th>
+<th>Initial</th>
+<th>Access</th>
+<th>Modify</th>
+<th>Rec Proc Monitor</th>
+<th>PP</th>
+</tr>
+
+<tr>
+<td>VAL</td>
+<td>Heartbeat Value</td>
+<td>LONG</td>
+<td>No</td>
+<td>0</td>
+<td>Yes</td>
+<td>No</td>
+<td>No</td>
+<td>No</td>
+</tr>
+
+<tr>
+<td>RHOST</td>
+<td>Remote Host IP Address</td>
+<td>STRING</td>
+<td>Yes</td>
+<td>&nbsp;</td>
+<td>Yes</td>
+<td>Yes</td>
+<td>Yes</td>
+<td>No</td>
+</tr>
+
+<tr>
+<td>RPORT</td>
+<td>Remote Host UDP Port Number</td>
+<td>SHORT</td>
+<td>Yes</td>
+<td>0</td>
+<td>Yes</td>
+<td>Yes</td>
+<td>Yes</td>
+<td>No</td>
+</tr>
+
+<tr>
+<td>RMAG</td>
+<td>Remote Host Magic Number</td>
+<td>LONG</td>
+<td>Yes</td>
+<td>305419896</td>
+<td>Yes</td>
+<td>Yes</td>
+<td>No</td>
+<td>No</td>
+</tr>
+
+<tr>
+<td>LPORT</td>
+<td>Local TCP Port Number</td>
+<td>SHORT</td>
+<td>Yes</td>
+<td>5678</td>
+<td>Yes</td>
+<td>No</td>
+<td>No</td>
+<td>No</td>
+</tr>
+
+<tr>
+<td>MSG</td>
+<td>Message to Send</td>
+<td>LONG</td>
+<td>Yes</td>
+<td>0</td>
+<td>Yes</td>
+<td>Yes</td>
+<td>No</td>
+<td>No</td>
+</tr>
+
+<tr>
+<td>ENV1</td>
+<td>Environment Variable Name 1</td>
+<td>STRING</td>
+<td>Yes</td>
+<td>&nbsp;</td>
+<td>Yes</td>
+<td>Yes</td>
+<td>Yes</td>
+<td>No</td>
+</tr>
+<tr>
+<td>ENV2</td>
+<td>Environment Variable Name 2</td>
+<td>STRING</td>
+<td>Yes</td>
+<td>&nbsp;</td>
+<td>Yes</td>
+<td>Yes</td>
+<td>Yes</td>
+<td>No</td>
+</tr>
+<tr>
+<td>ENV3</td>
+<td>Environment Variable Name 3</td>
+<td>STRING</td>
+<td>Yes</td>
+<td>&nbsp;</td>
+<td>Yes</td>
+<td>Yes</td>
+<td>Yes</td>
+<td>No</td>
+</tr>
+<tr>
+<td>ENV4</td>
+<td>Environment Variable Name 4</td>
+<td>STRING</td>
+<td>Yes</td>
+<td>&nbsp;</td>
+<td>Yes</td>
+<td>Yes</td>
+<td>Yes</td>
+<td>No</td>
+</tr>
+<tr>
+<td>ENV5</td>
+<td>Environment Variable Name 5</td>
+<td>STRING</td>
+<td>Yes</td>
+<td>&nbsp;</td>
+<td>Yes</td>
+<td>Yes</td>
+<td>Yes</td>
+<td>No</td>
+</tr>
+<tr>
+<td>ENV6</td>
+<td>Environment Variable Name 6</td>
+<td>STRING</td>
+<td>Yes</td>
+<td>&nbsp;</td>
+<td>Yes</td>
+<td>Yes</td>
+<td>Yes</td>
+<td>No</td>
+</tr>
+<tr>
+<td>ENV7</td>
+<td>Environment Variable Name 7</td>
+<td>STRING</td>
+<td>Yes</td>
+<td>&nbsp;</td>
+<td>Yes</td>
+<td>Yes</td>
+<td>Yes</td>
+<td>No</td>
+</tr>
+<tr>
+<td>ENV8</td>
+<td>Environment Variable Name 8</td>
+<td>STRING</td>
+<td>Yes</td>
+<td>&nbsp;</td>
+<td>Yes</td>
+<td>Yes</td>
+<td>Yes</td>
+<td>No</td>
+</tr>
+<tr>
+<td>ENV9</td>
+<td>Environment Variable Name 9</td>
+<td>STRING</td>
+<td>Yes</td>
+<td>&nbsp;</td>
+<td>Yes</td>
+<td>Yes</td>
+<td>Yes</td>
+<td>No</td>
+</tr>
+<tr>
+<td>ENV10</td>
+<td>Environment Variable Name 10</td>
+<td>STRING</td>
+<td>Yes</td>
+<td>&nbsp;</td>
+<td>Yes</td>
+<td>Yes</td>
+<td>Yes</td>
+<td>No</td>
+</tr>
+
+<tr>
+<td>ITRIG</td>
+<td>Trigger Information Request</td>
+<td>Menu: Idle/Trigger</td>
+<td>Yes</td>
+<td>Idle</td>
+<td>Yes</td>
+<td>Yes</td>
+<td>Yes</td>
+<td>No</td>
+</tr>
+
+<tr>
+<td>ISUP</td>
+<td>Suppress Information Requests</td>
+<td>Menu: Off/On</td>
+<td>Yes</td>
+<td>Off</td>
+<td>Yes</td>
+<td>Yes</td>
+<td>Yes</td>
+<td>No</td>
+</tr>
+
+</table>
+
+
+<hr>
+<p><h1>4. Record Support Routines</h1>
+
+<h3>init_record</h3>
+<p> The current time is recorded as the IOC boot time. A UDP socket is
+opened for sending heartbeat messages. An address structure for the
+remote server is initialized, using <strong>RHOST</strong>
+and <strong>RPORT</strong>. The name of the IOC is read from the "IOC"
+environment variable.
+</p><p> A thread is spawned for accepting TCP requests from the remote
+server on port <strong>LPORT</strong>.  The TCP port will only accept
+requests from the IP address specified in <strong>RHOST</strong>, and
+as long as <strong>ISUP</strong> is Off.  The message sent back upon
+request is a list of the specified environment variables, the IOC
+type, and the data special to that type.
+</p>
+
+<h3>process</h3>
+
+<p>
+The field <strong>VAL</strong> is incremented, and the current time
+recorded.  A heartbeat message is sent to the remote server.
+</p>
+
+<h3>special</h3>
+
+<p>
+Changing the <strong>RHOST</strong> field causes a check here to make
+sure that the string value is a properly formed IP address.  If not,
+no sending heartbeats will occur.
+</p>
+
+<hr>
+<h1>5. Message Protocol</h1>
+
+This section describes the current protocol,
+version <strong>3</strong>. All messages sent use network order.
+
+<h3>Heartbeat Message</h3>
+
+<p>
+This is the UDP message sent for each processing of the record.  The
+minimum size for a message payload is 28 bytes, being being fixed
+fields of 26 bytes with a null-terminated string.  All values are unsigned.
+</p><p> 
+The time values sent are EPICS time values, which are relative to 1990.
+Converting them to standard Linux time values means adding a value of
+631152000 (20 years of seconds) to each.
+</p><p>
+
+<table border style="margin: 0; text-align: center; border-collapse:collapse">
+<caption><strong>Heartbeat Format</strong></caption>
+<tr>
+<th>Offset (bytes)</th>
+<th colspan="10">0</th>
+<td colspan="10">1</td>
+<td colspan="10">2</td>
+<td colspan="10">3</td>
+<th colspan="10">4</th>
+<td colspan="10">5</td>
+<th colspan="10">6</th>
+<td colspan="10">7</td>
+<td colspan="10">8</td>
+<td colspan="10">9</td>
+<th colspan="10">10</th>
+<td colspan="10">11</td>
+<td colspan="10">12</td>
+<td colspan="10">13</td>
+<th colspan="10">14</th>
+<td colspan="10">15</td>
+<td colspan="10">16</td>
+<td colspan="10">17</td>
+<th colspan="10">18</th>
+<td colspan="10">19</td>
+<th colspan="10">20</th>
+<td colspan="10">21</td>
+<th colspan="10">22</th>
+<td colspan="10">23</td>
+<td colspan="10">24</td>
+<td colspan="10">25</td>
+<th colspan="10">26</th>
+<td colspan="10">...</td>
+<td colspan="10">...</td>
+<td colspan="10">...</td>
+<td colspan="10">...</td>
+<th colspan="10">26+x</th>
+</tr>
+<tr>
+<th>Field</th>
+<td colspan="40">Magic</td>
+<td colspan="20">Version</td>
+<td colspan="40">Incarnation</td>
+<td colspan="40">Current Time</td>
+<td colspan="40">Heartbeat Value</td>
+<td colspan="20">Flags</td>
+<td colspan="20">Return Port</td>
+<td colspan="40">User Message</td>
+<td colspan="50">IOC name (length <strong>x</strong>)</td>
+<td colspan="20"><strong>0</strong></td>
+</tr>
+</table>
+
+<dl>
+<dt><strong>Magic Number</strong> (32-bit)</dt>
+<dd>The value of this field comes form the <strong>RMAG</strong>
+field.  It is used by the remote server to delete messages received
+that don't start with this number.</dd>
+<dt><strong>Version of Protocol</strong> (16-bit)</dt>
+<dd>The value of this field is the current version of the protocol for
+this record.  The remote server can handle or ignore a particular
+version as it sees fit.</dd>
+<dt><strong>Incarnation</strong> (32-bit)</dt>
+<dd>This value is a unique number for this particular boot of the IOC.
+It's also the boot time as measured by the IOC, which should be unique
+for each boot, assuming that the EPICS time is correct when the record
+initialization happens.</dd>
+<dt><strong>Current Time</strong> (32-bit)</dt>
+<dd>This is the current time as measure by the IOC.</dd>
+<dt><strong>Heartbeat Value</strong> (32-bit)</dt>
+<dd>This is the current value of the <strong>VAL</strong> field</dd>
+<dt><strong>Flags</strong> (16-bit)</dt>
+<dd>This value holds bit flags for the server. 
+<ul>
+<li><strong>Bit 0:</strong> Server should read the environment
+variables, as there are updated values or <strong>ITRIG</strong> was
+set. This will be cleared after a successful read.</li>
+<li><strong>Bit 1:</strong> Server can't read the environment
+variables, and will be blocked if tried.  This is set
+by <strong>ISUP</strong>, and this bit overrides bit 0.</li>
+</dd>
+<dt><strong>Return Port</strong> (16-bit)</dt>
+<dd>This is the return TCP port number to use for reading IOC
+information, from <strong>LPORT</strong>.</dd>
+<dt><strong>User Message</strong> (32-bit)</dt>
+<dd>Whatever is in <strong>MSG</strong> will be included here.</dd>
+<dt><strong>IOC Name</strong> (variable length 8-bit)</dt>
+<dd>This is the value of the environment variable <em>IOC</em>, and is
+null-terminated.</dd>
+</dl>
+
+</p>
+
+<h3>Information Request Message</h3>
+
+<p>
+This is the message that is read from the TCP
+port <strong>LPORT</strong> on the IOC.  When the port is opened, the
+IOC will write this message and then immediately close the port.
+There is no way to write a message to the IOC this way.
+</p><p> If the suppression <strong>ISUP</strong> field is set to "On",
+the IOC will immediately close any connection whatsoever to this port
+(ideally the socket would simply be closed, but that would make things
+more complicated in the implementation).
+</p>
+
+<p>
+<table border style="margin: 0; text-align: center; border-collapse:collapse">
+<caption><strong>Information Header Format</strong></caption>
+<tr>
+<th>Offset (bytes)</th>
+<th colspan="10">0</th>
+<td colspan="10">1</td>
+<th colspan="10">2</th>
+<td colspan="10">3</td>
+<th colspan="10">4</th>
+<td colspan="10">5</td>
+<td colspan="10">6</td>
+<td colspan="10">7</td>
+<th colspan="10">8</th>
+<td colspan="10">9</td>
+</tr>
+<tr>
+<th>Field</th>
+<td colspan="20">Version</td>
+<td colspan="20">IOC Type</td>
+<td colspan="40">Message Length</td>
+<td colspan="20">Variable Count</td>
+</tr>
+</table>
+
+<dl>
+<dt><strong>Version of Protocol</strong> (16-bit)</dt>
+<dd>The value of this field is the current version of the protocol for
+this record.  The remote server can handle a previous version or
+ignore them as it sees fit.</dd>
+<dt><strong>IOC Type</strong> (16-bit)</dt>
+<dd>Stores type of IOC.  Currently only two types are defined.  This
+value also determines the type of extra information that is at the end
+of the message.
+<ul>
+<li><strong>0)</strong> Generic: No extra information.</li>
+<li><strong>1)</strong> VxWorks: The boot parameters are sent.</li>
+<li><strong>2)</strong> Linux: The user and group IDs of the process as well as the hostname are sent.</li>
+<li><strong>3)</strong> Darwin: The user and group IDs of the process as well as the hostname are sent.</li>
+</dd>
+<dt><strong>Message Length</strong> (32-bit)</dt>
+<dd>This is the length of the entire message.</dd>
+<dt><strong>Variable Count</strong> (16-bit)</dt>
+<dd>This is the number of environment variables sent.  Only values for
+non-empty <strong>ENVxx</strong> fields are sent.</dd>
+</dl>
+</p>
+
+<p>
+At this point of the message, byte 10, the locations become variable
+due to the variable nature of the data.  The environment variables are
+sent as multiple records, the number being <strong>Variable
+Count</strong>.
+</p><p>
+<table border style="margin: 0; text-align: center; border-collapse:collapse">
+<caption><strong>Environment Variable Record Format</strong></caption>
+<tr>
+<th>Record Offset (bytes)</th>
+<th colspan="10">0</th>
+<th colspan="10">1</th>
+<td colspan="10">...</td>
+<td colspan="10">...</td>
+<td colspan="10"><strong>x</strong></td>
+<td colspan="10"><strong>1+x</strong></td>
+<td colspan="10">2+<strong>x</strong></td>
+<td colspan="10"><strong>3+x</strong></td>
+<td colspan="10">...</td>
+<td colspan="10">...</td>
+<td colspan="10">...</td>
+<td colspan="10">...</td>
+<td colspan="10">2+<strong>x</strong>+<strong>y</strong></td>
+</tr>
+<tr>
+<th>Field</th>
+<td colspan="10">Name Length (length <strong>x</strong>)</td>
+<td colspan="40">Variable Name</td>
+<td colspan="20">Value Length (length <strong>y</strong>)</td>
+<td colspan="60">Variable Value</td>
+</tr>
+</table>
+
+<dl>
+<dt><strong>Name Length</strong> (8-bit)</dt>
+<dd>This is the length of the environment variable name.</dd>
+<dt><strong>Variable Name</strong> (variable length 8-bit)</dt>
+<dd>This is the name of the environment variable (cannot be an empty
+string).</dd>
+<dt><strong>Value Length</strong> (16-bit)</dt>
+<dd>This is the length of the environment variable value.  If the
+value was over 16-bits in size (64kb), an empty string is
+returned.</dd>
+<dt><strong>Variable Value</strong> (variable length 8-bit)</dt>
+<dd>This is the value of the environment variable.  If the variable did not exist on the IOC, this is an empty string (size 0).</dd>
+</dl>
+
+</p>
+<p>
+If the value of <strong>IOC Type</strong> is non-zero, there may be
+extra data at this point.  Currently both supported types do include
+data, so the extra information presented below is present for vxWorks,
+Linux, and Darwin.
+</p>
+
+<h4>vxWorks</h4>
+<p> For vxWorks, the extra information is the boot parameters.
+The data is either in a string or a number.  A string is represented
+by an 8-bit string length, followed by the string itself.  The number
+is a 32-bit number.
+</p><p>
+<table border style="margin: 0; text-align: center; border-collapse:collapse">
+<caption><strong>Extra vxWorks Information Format</strong></caption>
+<tr>
+<th>Field Order</th>
+<td>Boot Device (str)</td>
+<td>Unit Number (int)</td>
+<td>Processor Number (int)</td>
+<td>Boot Host Name (str)</td>
+<td>Boot File (str)</td>
+<td>Address (str)</td>
+<td>Backplane Address (str)</td>
+<td>Boot Host Address (str)</td>
+<td>Gateway Address (str)</td>
+<td>User Name (str)</td>
+<td>User Password (str)</td>
+<td>Flags (int)</td>
+<td>Target Name (str)</td>
+<td>Startup Script (str)</td>
+<td>Other (str)</td>
+</tr>
+</table>
+</p>
+
+<h4>Linux and Darwin</h4>
+<p> For Linux and Darwin, the extra information is the user and group
+IDs of the IOC process, as well as the hostname of the host computer.
+The data are represented by an 8-bit string length, followed by the
+string itself.
+</p>
+<p>
+<table border style="margin: 0; text-align: center; border-collapse:collapse">
+<caption><strong>Extra Linux/Darwin Information Format</strong></caption>
+<tr>
+<th>Field Order</th>
+<td>User ID (str)</td>
+<td>Group ID (str)</td>
+<td>Hostname (str)</td>
+</tr>
+</table>
+</p>
+
+
+<hr>
+
+<address>
+    <a href="http://www.aps.anl.gov/About/People/Contact/?name=Dohn__Arms">
+    Dohn Arms</a><br>
+    Advanced Photon Source
+</address>
+
+</body>
+</html>
