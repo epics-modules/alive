@@ -107,7 +107,8 @@ endlessly trying to make a callback.</li>
 <dt><strong>Return Port</strong> (16-bit) - <strong>LPORT</strong></dt>
 <dd>This is the port number to use for making a TCP callback to the
 alive record. If implementing callbacks, it should either be recorded
-or simply passed along to the callback routine.</dd>
+or simply passed along to the callback routine. If the IOC was not
+able to create the callback port, a value of 0 will be here.</dd>
 <dt><strong>User Message</strong> (32-bit) - <strong>MSG</strong></dt>
 <dd>This value has no set action.  This value should either be
 recorded and/or acted on if used as a server flag.  Multiple values or
@@ -159,7 +160,10 @@ The down time for a failed IOC is the time since the last heartbeat.
 
 <p>
 The TCP callback is used to get static information from the alive
-record.  The server can make a callback at any time, although it
+record.  If the IOC was not able to create the callback port, the
+value of the Return Port will be 0, and a callback can't be made.
+</p><p>
+The server can make a callback at any time, although it
 typically should be done when a new incarnation is seen in the
 heartbeat message or when the Read (Bit 0) flag is set in the
 heartbeat message.  Also, if the Blocked (Bit 1) flag is set in the

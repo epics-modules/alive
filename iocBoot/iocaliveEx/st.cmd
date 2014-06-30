@@ -12,7 +12,7 @@ dbLoadDatabase "dbd/aliveEx.dbd"
 aliveEx_registerRecordDeviceDriver pdbbase
 
 ## Load record instances
-dbLoadRecords "db/alive.db", "P=aliveEx:,RHOST=xxx.xxx.xxx.xxx"
+dbLoadRecords "db/alive.db", "P=aliveEx:,RHOST=x.x.x.x"
 
 
 ## Run this to trace the stages of iocInit

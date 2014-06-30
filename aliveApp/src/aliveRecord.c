@@ -1,6 +1,5 @@
 /* aliveRecord.c */
-/* Example record support module */
-  
+
 #ifdef vxWorks
   #include <version.h>
   #include <bootLib.h>
@@ -10,25 +9,19 @@
     #include <sockLib.h>
     #include <ioLib.h>
   #else
-    #include <stddef.h>
-    #include <stdarg.h>
-
     #include <sockLib.h>
     #include <inetLib.h>
     #include <hostLib.h>
   #endif
-#else
-  #include <netinet/in.h>
-  #include <arpa/inet.h>
-#endif
-
-#if defined (linux) || defined (darwin)
+#elif defined (linux) || defined (darwin)
   #include <unistd.h>
   #include <pwd.h>
   #include <grp.h>
   #include <sys/types.h>
 #endif
 
+#include <stddef.h>
+#include <stdarg.h>
 #include <stdlib.h>
 #include <errno.h>
 #include <stdio.h>
@@ -48,6 +41,9 @@
 #include <recSup.h>
 #include <special.h>
 //#include <callback.h>
+#include <osiSock.h>
+
+
 #define GEN_SIZE_OFFSET
 #include "aliveRecord.h"
 #undef  GEN_SIZE_OFFSET
@@ -59,6 +55,13 @@
 #define EPICS_VERSION_INT VERSION_INT(EPICS_VERSION, EPICS_REVISION, EPICS_MODIFICATION, EPICS_PATCH_LEVEL)
 #endif
 #define LT_EPICSBASE(V,R,M,P) (EPICS_VERSION_INT < VERSION_INT((V),(R),(M),(P)))
+
+
+#define ALIVE_VERSION (0)
+#define ALIVE_REVISION (9)
+#define ALIVE_MODIFICATION (1)
+
+#define PROTOCOL_VERSION (4)
 
 
 /* Create RSET - Record Support Entry Table */
@@ -103,27 +106,23 @@ rset aliveRSET =
   };
 epicsExportAddress(rset,aliveRSET);
 
-#define PROTOCOL_VERSION (4)
-
 #define ENV_CNT (10)
 
 static void checkAlarms(aliveRecord *prec);
 static void monitor(aliveRecord *prec);
-static void monitor_itrig(aliveRecord *prec);
+static void monitor_field(aliveRecord *prec, void *field);
+//static void monitor_itrig(aliveRecord *prec);
 
-typedef struct rpvtStruct 
+struct rpvtStruct 
 {
   struct alive_t *alive;
 
   char fault_flag; // in case of unrecoverable error
   char ready_flag; // in case host doesn't make sense
 
-  int socket;
-  struct sockaddr_in h_addr;
-
   uint32_t incarnation;
-  uint16_t lport;
   uint16_t flags;
+  uint16_t orig_port;
 
   char ioc_name[41];
   
@@ -132,11 +131,16 @@ typedef struct rpvtStruct
   char env[ENV_CNT][41];
 
   epicsThreadId listen_thread;
-} rpvtStruct;
+
+  SOCKET socket;
+  struct sockaddr_in h_addr;
+
+  char buffer[16];
+};
 
 
 #ifdef vxWorks
-static void bootparam_write( int sock, char *string)
+static void bootparam_write( SOCKET sock, char *string)
 {
   uint8_t len8;
 
@@ -150,20 +154,16 @@ static void bootparam_write( int sock, char *string)
 void *ioc_alive_listen(void *data)
 {
   aliveRecord *prec = (aliveRecord *) data;
-  rpvtStruct *prpvt;
+  struct rpvtStruct *prpvt;
 
-  int tcp_sockfd;
+  SOCKET tcp_sockfd;
   int sflag;
 
-  struct sockaddr_in r_addr;
-#ifdef vxWorks
-  int r_len;
-#else
-  socklen_t r_len;
-#endif
-  int client_sockfd;
+  SOCKET client_sockfd;
 
   struct sockaddr_in l_addr;
+
+  osiSocklen_t socklen;
 
   char *q;
   
@@ -210,56 +210,71 @@ void *ioc_alive_listen(void *data)
 #endif
   l_addr.sin_family = AF_INET;
   l_addr.sin_addr.s_addr = htonl(INADDR_ANY);
-  l_addr.sin_port = htons(prpvt->lport);
+  l_addr.sin_port = htons(prpvt->orig_port);
 
-#ifdef vxWorks
-  if( (tcp_sockfd = socket(AF_INET, SOCK_STREAM, 0)) == ERROR )
-#else
-  if( (tcp_sockfd = socket(AF_INET, SOCK_STREAM, 0) ) == -1)
-#endif
+  if( (tcp_sockfd = epicsSocketCreate(AF_INET, SOCK_STREAM, 0))
+      == INVALID_SOCKET )
     {
       perror("socket");
+      prec->ipsts = aliveIPSTS_INOPERABLE;
+      monitor_field(prec, (void *) &prec->ipsts);
       return NULL;
     }
 
   sflag = 1;
   // not the end of the world if this option doesn't work
-  setsockopt(tcp_sockfd, SOL_SOCKET, SO_REUSEADDR, (void *) &sflag, 
+  setsockopt(tcp_sockfd, SOL_SOCKET, SO_REUSEADDR, (void *) &sflag,
              sizeof(sflag));
 
-#ifdef vxWorks
-  if( bind(tcp_sockfd, (struct sockaddr *) &l_addr, 
-           sizeof(struct sockaddr_in)) == ERROR)
-#else
+
   if( bind(tcp_sockfd, (struct sockaddr *) &l_addr, 
            sizeof(struct sockaddr_in)) )
-#endif
     {
       perror("TCP bind");
+      prec->ipsts = aliveIPSTS_INOPERABLE;
+      monitor_field(prec, (void *) &prec->ipsts);
       return NULL;
     }
+  
+  socklen = sizeof(struct sockaddr_in);
+  if( getsockname( tcp_sockfd, (struct sockaddr *) &l_addr, &socklen) )
+    {
+      perror("TCP getsockname");
+      prec->ipsts = aliveIPSTS_INOPERABLE;
+      monitor_field(prec, (void *) &prec->ipsts);
+      return NULL;
+    }    
+  // wait to use result until we know listen() works
 
-#ifdef vxWorks
-  if( listen(tcp_sockfd, 5) == ERROR )
-#else
   if( listen(tcp_sockfd, 5) )
-#endif
     {
       perror("TCP listen");
+      prec->ipsts = aliveIPSTS_INOPERABLE;
+      monitor_field(prec, (void *) &prec->ipsts);
       return NULL;
     }
 
+  prec->iport = ntohs(l_addr.sin_port);
+  monitor_field(prec, (void *) &prec->iport);
+  prec->ipsts = aliveIPSTS_OPERABLE;
+  monitor_field(prec, (void *) &prec->ipsts);
+
+  // request remote read
+  prpvt->flags |= ((uint16_t) 1);
+  
   while(1)
     {
-      r_len = sizeof(r_addr);
-      client_sockfd = accept( tcp_sockfd, (struct sockaddr *)&r_addr, 
-                              &r_len);
+      struct sockaddr r_addr;
+      osiSocklen_t r_len = sizeof( r_addr);
+
+      client_sockfd = epicsSocketAccept( tcp_sockfd, &r_addr, &r_len);
 
       // fault flag can't happen, but just in case
       if( prec->isup || prpvt->fault_flag || !prpvt->ready_flag || 
-          ( r_addr.sin_addr.s_addr != prpvt->h_addr.sin_addr.s_addr) )
+          ( ((struct sockaddr_in *)&r_addr)->sin_addr.s_addr != prpvt->h_addr.sin_addr.s_addr) )
         {
-          close(client_sockfd);
+          /* close(client_sockfd); */
+          epicsSocketDestroy(client_sockfd);
           continue;
         }
 
@@ -429,7 +444,8 @@ void *ioc_alive_listen(void *data)
       if( hostname != NULL)
         write( client_sockfd, hostname, len8 );
 #endif
-      close( client_sockfd);
+      /* close( client_sockfd); */
+      epicsSocketDestroy( client_sockfd);
 
       // turn off request flag
       prpvt->flags &= ~((uint16_t) 1);
@@ -438,7 +454,7 @@ void *ioc_alive_listen(void *data)
         {
           prec->itrig = 0; 
 
-          monitor_itrig(prec);
+          monitor_field(prec, (void *) &prec->itrig);
         }
     }
 
@@ -448,14 +464,16 @@ void *ioc_alive_listen(void *data)
 
 static long init_record(void *precord,int pass)
 {
-  aliveRecord *prec = (aliveRecord *)precord;
-  rpvtStruct  *prpvt;
+  aliveRecord *prec;
+  struct rpvtStruct *prpvt;
 
   epicsTimeStamp start_time;
 
   int i, flag;
   char *p;
   
+
+  prec = precord;
 
   if( pass == 0) 
     {
@@ -465,12 +483,19 @@ static long init_record(void *precord,int pass)
     }
 
   prec->val = 0;
+  
+  sprintf( prec->ver, "%d-%d-%d", ALIVE_VERSION, ALIVE_REVISION,
+           ALIVE_MODIFICATION );
+
   prpvt = prec->rpvt;
+
+  // save value to local structure, set to zero until initialized.
+  prpvt->orig_port = prec->iport;
+  prec->iport = 0;
 
   prpvt->fault_flag = 0;
   prpvt->ready_flag = 0;
-  prpvt->lport = prec->lport;
-  prpvt->flags = 1;  // first bit set, read envs
+  prpvt->flags = 0;  // first bit set when port initialized
 
   epicsTimeGetCurrent(&start_time);
   prpvt->incarnation = (uint32_t) start_time.secPastEpoch;
@@ -482,7 +507,8 @@ static long init_record(void *precord,int pass)
         prpvt->env[i][0] = '\0';
     }
 
-  if( (prpvt->socket = socket(AF_INET, SOCK_DGRAM, 0)) == -1)
+  if( (prpvt->socket = epicsSocketCreate(AF_INET, SOCK_DGRAM, 0)) == 
+      INVALID_SOCKET)
     {
       errlogSevPrintf( errlogFatal, "%s", "alive record: "
                        "Won't start, can't open DGRAM socket.\n");
@@ -534,7 +560,7 @@ static long process(aliveRecord *prec)
 
   uint32_t message;
 
-  rpvtStruct *prpvt = prec->rpvt;
+  struct rpvtStruct *prpvt = prec->rpvt;
   epicsTimeStamp now;
 
   char *p;
@@ -582,7 +608,7 @@ static long process(aliveRecord *prec)
   p += 2;
 
   // return port
-  message = htons( prpvt->lport);
+  message = htons( prec->iport);
   *((uint16_t *) p) = message;
   p += 2;
 
@@ -658,7 +684,6 @@ static long special(DBADDR *paddr, int after)
         prpvt->flags &= ~((uint16_t) 2);
       break;
     case(aliveRecordITRIG):
-      //      monitor_itrig(prec);
       // falls through to trigger reread
       break;
     case(aliveRecordENV1):
@@ -715,13 +740,13 @@ static void monitor(aliveRecord *prec)
     return;
 }
 
-static void monitor_itrig(aliveRecord *prec)
+static void monitor_field(aliveRecord *prec, void *field)
 {
     unsigned short  monitor_mask;
 
     monitor_mask = recGblResetAlarms(prec);
     monitor_mask |= DBE_VALUE;
-    db_post_events(prec,&prec->itrig,monitor_mask);
+    db_post_events(prec,field,monitor_mask);
 
     return;
 }

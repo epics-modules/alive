@@ -75,13 +75,6 @@ will affect how quickly the values changes.
 the <strong>RHOST</strong> and <strong>RPORT</strong> fields to
 specify address and port. The <strong>RHOST</strong> needs to be the
 IPv4 numeric address, and not a name.  
-</p><p> Unless suppressed, the remote server can attempt to read back
-the environment variables and other information using the TCP port
-specified by
-<strong>LPORT</strong>.  If multiple IOCs are on the same IP address,
-just make sure each alive record uses a unique port.  It should be
-noted that <em>only</em> connections originating
-from <strong>RHOST</strong> will be allowed to connect this way.
 </p><p> The server may employ a magic number to help filter out
 unwanted UDP packets sent to it, and this number is specified in
 the <strong>RMAG</strong> field, and is the first thing sent in the
@@ -89,10 +82,20 @@ heartbeat message; the default corresponds to 0x12345678.  There is a
 field that can be used to send a user-defined message to the
 server, <strong>MSG</strong>, and its usage is left up to the
 implementer.
-</p><p> Names of the environment variables to be sent to the remote
-server upon request are <strong>ENV1</strong>-<strong>ENV10</strong>.
-If the length of the value of a variable is over 65535, an empty
-string will be sent back.
+</p><p> Unless suppressed, the remote server can attempt to read back
+the environment variables and other information using the TCP port
+specified by <strong>IPORT</strong>.  If initialized to 0, an
+available port will be found and its value placed this field,
+otherwise any nonzero value will be attempted.  If multiple IOCs are
+on the same IP address, each alive record needs to use a unique port,
+which is taken care of automatically if all are initialized to 0.  It
+should be noted that <em>only</em> connections originating
+from <strong>RHOST</strong> will be allowed to connect this way.  The
+status of the port can be found with <strong>IPSTS</strong>, which has
+three values set by the record: "Undetermined", which is the initial
+value; "Operable", meaning that the port was successfully opened; and
+"Inoperable", which means that there was a failure in opening the
+port.  This field is to help debug use of the record.
 </p><p> The send a trigger flag to the remote server, signaling that
 it should reread the boot information, <strong>ITRIG</strong> should
 be set to "Trigger".  When the variables have been read, it will
@@ -106,6 +109,12 @@ sends a suppress flag to the server, and will immediately close all
 connection that occur.  This is useful if the IOC is behind a firewall
 that won't allow a direct TCP connection, telling the server to not
 endlessly try to read.
+</p><p> Names of the environment variables to be sent to the remote
+server upon request are <strong>ENV1</strong>-<strong>ENV10</strong>.
+If the length of the value of a variable is over 65535, an empty
+string will be sent back.
+</p><p>The version of the record is kept in <strong>VER</strong>
+as a string, in the form of "0-9-1".
 </p>
 
 
@@ -126,7 +135,7 @@ endlessly try to read.
 <tr>
 <td>VAL</td>
 <td>Heartbeat Value</td>
-<td>LONG</td>
+<td>ULONG</td>
 <td>No</td>
 <td>0</td>
 <td>Yes</td>
@@ -150,7 +159,7 @@ endlessly try to read.
 <tr>
 <td>RPORT</td>
 <td>Remote Host UDP Port Number</td>
-<td>SHORT</td>
+<td>USHORT</td>
 <td>Yes</td>
 <td>0</td>
 <td>Yes</td>
@@ -162,23 +171,11 @@ endlessly try to read.
 <tr>
 <td>RMAG</td>
 <td>Remote Host Magic Number</td>
-<td>LONG</td>
+<td>ULONG</td>
 <td>Yes</td>
 <td>305419896</td>
 <td>Yes</td>
 <td>Yes</td>
-<td>No</td>
-<td>No</td>
-</tr>
-
-<tr>
-<td>LPORT</td>
-<td>Local TCP Port Number</td>
-<td>SHORT</td>
-<td>Yes</td>
-<td>5678</td>
-<td>Yes</td>
-<td>No</td>
 <td>No</td>
 <td>No</td>
 </tr>
@@ -191,6 +188,65 @@ endlessly try to read.
 <td>0</td>
 <td>Yes</td>
 <td>Yes</td>
+<td>No</td>
+<td>No</td>
+</tr>
+
+<tr>
+<td>IPORT</td>
+<td>TCP Information Port Number</td>
+<td>USHORT</td>
+<td>Yes</td>
+<td>0</td>
+<td>Yes</td>
+<td>No</td>
+<td>No</td>
+<td>No</td>
+</tr>
+
+<tr>
+<td>IPSTS</td>
+<td>Information Port Status</td>
+<td>Menu: Undetermined/Operable/Inoperable</td>
+<td>Yes</td>
+<td>Undetermined</td>
+<td>Yes</td>
+<td>No</td>
+<td>Yes</td>
+<td>No</td>
+</tr>
+
+<tr>
+<td>ITRIG</td>
+<td>Trigger Information Request</td>
+<td>Menu: Idle/Trigger</td>
+<td>Yes</td>
+<td>Idle</td>
+<td>Yes</td>
+<td>Yes</td>
+<td>Yes</td>
+<td>No</td>
+</tr>
+
+<tr>
+<td>ISUP</td>
+<td>Suppress Information Requests</td>
+<td>Menu: Off/On</td>
+<td>Yes</td>
+<td>Off</td>
+<td>Yes</td>
+<td>Yes</td>
+<td>Yes</td>
+<td>No</td>
+</tr>
+
+<td>VER</td>
+<td>Record Version</td>
+<td>STRING</td>
+<td>Yes</td>
+<td>&nbsp;</td>
+<td>Yes</td>
+<td>No</td>
 <td>No</td>
 <td>No</td>
 </tr>
@@ -306,29 +362,6 @@ endlessly try to read.
 <td>No</td>
 </tr>
 
-<tr>
-<td>ITRIG</td>
-<td>Trigger Information Request</td>
-<td>Menu: Idle/Trigger</td>
-<td>Yes</td>
-<td>Idle</td>
-<td>Yes</td>
-<td>Yes</td>
-<td>Yes</td>
-<td>No</td>
-</tr>
-
-<tr>
-<td>ISUP</td>
-<td>Suppress Information Requests</td>
-<td>Menu: Off/On</td>
-<td>Yes</td>
-<td>Off</td>
-<td>Yes</td>
-<td>Yes</td>
-<td>Yes</td>
-<td>No</td>
-</tr>
 
 </table>
 
@@ -343,11 +376,14 @@ remote server is initialized, using <strong>RHOST</strong>
 and <strong>RPORT</strong>. The name of the IOC is read from the "IOC"
 environment variable.
 </p><p> A thread is spawned for accepting TCP requests from the remote
-server on port <strong>LPORT</strong>.  The TCP port will only accept
-requests from the IP address specified in <strong>RHOST</strong>, and
-as long as <strong>ISUP</strong> is Off.  The message sent back upon
-request is a list of the specified environment variables, the IOC
-type, and the data special to that type.
+server on port <strong>IPORT</strong>, and if the port value is
+zero, the record will get an automatically assigned port, updating 
+<strong>IPORT</strong> with the actual value.  The TCP port will only
+accept requests from the IP address specified
+in <strong>RHOST</strong>, and as long as <strong>ISUP</strong> is
+Off.  The message sent back upon request is a list of the specified
+environment variables, the IOC type, and the data special to that
+type.
 </p>
 
 <h3>process</h3>
@@ -465,7 +501,7 @@ by <strong>ISUP</strong>, and this bit overrides bit 0.</li>
 </dd>
 <dt><strong>Return Port</strong> (16-bit)</dt>
 <dd>This is the return TCP port number to use for reading IOC
-information, from <strong>LPORT</strong>.</dd>
+information, from <strong>IPORT</strong>.</dd>
 <dt><strong>User Message</strong> (32-bit)</dt>
 <dd>Whatever is in <strong>MSG</strong> will be included here.</dd>
 <dt><strong>IOC Name</strong> (variable length 8-bit)</dt>
@@ -479,7 +515,7 @@ null-terminated.</dd>
 
 <p>
 This is the message that is read from the TCP
-port <strong>LPORT</strong> on the IOC.  When the port is opened, the
+port <strong>IPORT</strong> on the IOC.  When the port is opened, the
 IOC will write this message and then immediately close the port.
 There is no way to write a message to the IOC this way.
 </p><p> If the suppression <strong>ISUP</strong> field is set to "On",

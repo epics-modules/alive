@@ -6,9 +6,14 @@ menu(aliveISUP) {
         choice(aliveISUP_OFF,"Off")
         choice(aliveISUP_ON,"On")
         }
+menu(aliveIPSTS) {
+        choice(aliveIPSTS_UNDETERMINED,"Undetermined")
+        choice(aliveIPSTS_OPERABLE,"Operable")
+        choice(aliveIPSTS_INOPERABLE,"Inoperable")
+        }
 recordtype(alive) {
         include "dbCommon.dbd" 
-        field(VAL,DBF_LONG) {
+        field(VAL,DBF_ULONG) {
                 prompt("Return Value")
                 special(SPC_NOMOD)
         }
@@ -18,23 +23,18 @@ recordtype(alive) {
                 size(40)
                 initial("")
         }
-        field(RPORT,DBF_SHORT) {
+        field(RPORT,DBF_USHORT) {
                 prompt("Remote port")
                 special(SPC_MOD)
                 initial("0")
         }
-        field(RMAG,DBF_LONG) {
+        field(RMAG,DBF_ULONG) {
                 prompt("Magic number")
                 initial("305419896")
         }
-        field(MSG,DBF_LONG) {
+        field(MSG,DBF_ULONG) {
                 prompt("Message Value")
                 initial("0")
-        }
-        field(LPORT,DBF_SHORT) {
-                prompt("Local receiving port")
-                special(SPC_NOMOD)
-                initial("5678")
         }
         field(RPVT,DBF_NOACCESS) {
                 prompt("Record Private")
@@ -104,6 +104,17 @@ recordtype(alive) {
                 initial("")
         }
 
+        field(IPORT,DBF_USHORT) {
+                prompt("Information port")
+                special(SPC_NOMOD)
+                initial("0")
+        }
+        field(IPSTS,DBF_MENU) {
+                prompt("Information port status")
+                special(SPC_NOMOD)
+                menu(aliveIPSTS)
+                initial("Undetermined")
+        }
         field(ITRIG,DBF_MENU) {
                 prompt("Trigger information read")
                 special(SPC_MOD)
@@ -117,4 +128,10 @@ recordtype(alive) {
                 initial("Off")
         }
 
+        field(VER,DBF_STRING) {
+                prompt("Record version")
+                special(SPC_NOMOD)
+                size(40)
+                initial("")
+        }
 }
