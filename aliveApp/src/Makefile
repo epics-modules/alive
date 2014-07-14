@@ -12,7 +12,7 @@ LIBRARY_IOC += alive
 # xxxRecord.h will be created from xxxRecord.dbd
 DBDINC += aliveRecord
 # Install devXxxSoft.dbd into <top>/dbd
-DBD_INSTALLS += aliveSupport.dbd
+DBD += aliveSupport.dbd
 
 #DBD_INSTALLS += busySupport.dbd
 #DBDINC += busyRecord
