@@ -1,5 +1,6 @@
 /* aliveRecord.c */
 
+
 #ifdef vxWorks
   #include <version.h>
   #include <bootLib.h>
@@ -61,7 +62,7 @@
 #define ALIVE_REVISION (9)
 #define ALIVE_MODIFICATION (1)
 
-#define PROTOCOL_VERSION (4)
+#define PROTOCOL_VERSION (5)
 
 
 /* Create RSET - Record Support Entry Table */
@@ -111,7 +112,6 @@ epicsExportAddress(rset,aliveRSET);
 static void checkAlarms(aliveRecord *prec);
 static void monitor(aliveRecord *prec);
 static void monitor_field(aliveRecord *prec, void *field);
-//static void monitor_itrig(aliveRecord *prec);
 
 struct rpvtStruct 
 {
@@ -131,6 +131,7 @@ struct rpvtStruct
   char env[ENV_CNT][41];
 
   epicsThreadId listen_thread;
+  epicsThreadId send_thread;
 
   SOCKET socket;
   struct sockaddr_in h_addr;
@@ -462,7 +463,108 @@ void *ioc_alive_listen(void *data)
 }
 
 
-static long init_record(void *precord,int pass)
+void *ioc_alive_send(void *data)
+{
+  aliveRecord *prec = (aliveRecord *) data;
+  struct rpvtStruct *prpvt;
+
+  // 200 is fine, ioc name length is limited to 100 in init
+  char buffer[200];  
+
+  uint32_t message;
+
+  epicsTimeStamp now;
+
+  char *p;
+  int len;
+
+  prpvt = prec->rpvt;
+  
+  epicsThreadSleep( 0.1);
+
+  while(1)
+    {
+      if( prpvt->fault_flag || !prpvt->ready_flag)
+        {
+          epicsThreadSleep( (double) prec->prd);
+          continue;
+        }
+
+      prec->val++;
+
+      p = buffer;
+
+      // magic signature, to help weed out probes
+      message = htonl(prec->rmag);
+      *((uint32_t *) p) = message;
+      p += 4;
+
+      // protocol version
+      message = htons(PROTOCOL_VERSION);
+      *((uint16_t *) p) = message;
+      p += 2;
+  
+      // incarnation
+      message = htonl(prpvt->incarnation);
+      *((uint32_t *) p) = message;
+      p += 4;
+
+      // current time
+      epicsTimeGetCurrent(&now);
+      message = htonl( (uint32_t) now.secPastEpoch);
+      *((uint32_t *) p) = message;
+      p += 4;
+
+      // heartbeat
+      message = htonl(prec->val);
+      *((uint32_t *) p) = message;
+      p += 4;
+
+      // period
+      message = htons( prec->prd);
+      *((uint16_t *) p) = message;
+      p += 2;
+
+      // flags
+      message = htons( prpvt->flags);
+      *((uint16_t *) p) = message;
+      p += 2;
+
+      // return port
+      message = htons( prec->iport);
+      *((uint16_t *) p) = message;
+      p += 2;
+
+      // user message
+      message = htonl(prec->msg);
+      *((uint32_t *) p) = message;
+      p += 4;
+
+      len = sprintf( p, "%s", prpvt->ioc_name);
+      // include trailing zero
+      p += (len + 1);
+
+      if( sendto( prpvt->socket, buffer, (int) (p - buffer), 0, 
+                  (struct sockaddr *) &(prpvt->h_addr), 
+                  sizeof(struct sockaddr_in))  == -1)
+        {
+          errlogSevPrintf( errlogMajor, "alive record: Can't send UDP packet "
+                           "(sendto errno=%d).\n", errno);
+        }
+
+      recGblGetTimeStamp(prec);
+      /* check for alarms */
+      checkAlarms(prec);
+      /* check event list */
+      monitor(prec);
+
+      epicsThreadSleep( (double) prec->prd);
+    }
+
+  return NULL;
+}
+
+static long init_record(void *precord, int pass)
 {
   aliveRecord *prec;
   struct rpvtStruct *prpvt;
@@ -492,6 +594,10 @@ static long init_record(void *precord,int pass)
   // save value to local structure, set to zero until initialized.
   prpvt->orig_port = prec->iport;
   prec->iport = 0;
+
+  // if period is set to 0, use default of 15
+  if( !prec->prd)
+    prec->prd = 15;
 
   prpvt->fault_flag = 0;
   prpvt->ready_flag = 0;
@@ -546,98 +652,27 @@ static long init_record(void *precord,int pass)
   prpvt->ioc_name[40] = '\0';
 
   prpvt->listen_thread = 
-    epicsThreadCreate("alive_tcp_thread", 50, 
+    epicsThreadCreate("alive_tcp_listen_thread", 51, 
                       epicsThreadGetStackSize(epicsThreadStackMedium),
                       (EPICSTHREADFUNC) ioc_alive_listen, (void *) precord);
+  prpvt->send_thread = 
+    epicsThreadCreate("alive_udp_send_thread", 50, 
+                      epicsThreadGetStackSize(epicsThreadStackMedium),
+                      (EPICSTHREADFUNC) ioc_alive_send, (void *) precord);
   
   return 0;
 }
 
 static long process(aliveRecord *prec)
 {
-  // 200 is fine, ioc name length is limited to 100 in init
-  char buffer[200];  
-
-  uint32_t message;
-
-  struct rpvtStruct *prpvt = prec->rpvt;
-  epicsTimeStamp now;
-
-  char *p;
-  int len;
-
-  if( prpvt->fault_flag || !prpvt->ready_flag)
-    return 0;
-
   prec->pact = TRUE;
   prec->udf = FALSE;
 
-  prec->val++;
-
-  p = buffer;
-
-  // magic signature, to help weed out probes
-  message = htonl(prec->rmag);
-  *((uint32_t *) p) = message;
-  p += 4;
-
-  // protocol version
-  message = htons(PROTOCOL_VERSION);
-  *((uint16_t *) p) = message;
-  p += 2;
-  
-  // incarnation
-  message = htonl(prpvt->incarnation);
-  *((uint32_t *) p) = message;
-  p += 4;
-
-  // current time
-  epicsTimeGetCurrent(&now);
-  message = htonl( (uint32_t) now.secPastEpoch);
-  *((uint32_t *) p) = message;
-  p += 4;
-
-  // heartbeat
-  message = htonl(prec->val);
-  *((uint32_t *) p) = message;
-  p += 4;
-
-  // flags
-  message = htons( prpvt->flags);
-  *((uint16_t *) p) = message;
-  p += 2;
-
-  // return port
-  message = htons( prec->iport);
-  *((uint16_t *) p) = message;
-  p += 2;
-
-  // user message
-  message = htonl(prec->msg);
-  *((uint32_t *) p) = message;
-  p += 4;
-
-  len = sprintf( p, "%s", prpvt->ioc_name);
-  // include trailing zero
-  p += (len + 1);
-
-  if( sendto( prpvt->socket, buffer, (int) (p - buffer), 0, 
-              (struct sockaddr *) &(prpvt->h_addr), 
-              sizeof(struct sockaddr_in))  == -1)
-    {
-      errlogSevPrintf( errlogMajor, "alive record: Can't send UDP packet "
-                       "(sendto errno=%d).\n", errno);
-    }
-
-  recGblGetTimeStamp(prec);
-  /* check for alarms */
-  checkAlarms(prec);
-  /* check event list */
-  monitor(prec);
   /* process the forward scan link record */
   recGblFwdLink(prec);
 
   prec->pact=FALSE;
+
   return 0;
 }
 

@@ -17,6 +17,11 @@ recordtype(alive) {
                 prompt("Return Value")
                 special(SPC_NOMOD)
         }
+        field(PRD,DBF_USHORT) {
+                prompt("Period")
+                special(SPC_NOMOD)
+                initial("15")
+        }
         field(RHOST,DBF_STRING) {
                 prompt("Remote host")
                 special(SPC_MOD)
