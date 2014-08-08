@@ -1,3 +1,7 @@
+menu(aliveHRTBT) {
+        choice(aliveHRTBT_OFF,"Off")
+        choice(aliveHRTBT_ON,"On")
+        }
 menu(aliveITRIG) {
         choice(aliveITRIG_IDLE,"Idle")
         choice(aliveITRIG_TRIGGER,"Trigger")
@@ -14,13 +18,8 @@ menu(aliveIPSTS) {
 recordtype(alive) {
         include "dbCommon.dbd" 
         field(VAL,DBF_ULONG) {
-                prompt("Return Value")
+                prompt("Return value")
                 special(SPC_NOMOD)
-        }
-        field(PRD,DBF_USHORT) {
-                prompt("Period")
-                special(SPC_NOMOD)
-                initial("15")
         }
         field(RHOST,DBF_STRING) {
                 prompt("Remote host")
@@ -33,8 +32,18 @@ recordtype(alive) {
                 special(SPC_MOD)
                 initial("0")
         }
-        field(RMAG,DBF_ULONG) {
-                prompt("Magic number")
+        field(HRTBT,DBF_MENU) {
+                prompt("Heartbeat state")
+                menu(aliveHRTBT)
+                initial("On")
+        }
+        field(HPRD,DBF_USHORT) {
+                prompt("Heartbeat period")
+                special(SPC_NOMOD)
+                initial("15")
+        }
+        field(HMAG,DBF_ULONG) {
+                prompt("Heartbeat magic number")
                 initial("305419896")
         }
         field(MSG,DBF_ULONG) {

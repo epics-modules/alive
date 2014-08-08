@@ -39,7 +39,7 @@ on how the author has designed a server.
 The first thing is to make sure that the alive record is sending
 heartbeats UDP packets to the server (from <strong>RHOST</strong>) at
 the expected UDP port (from <strong>RPORT</strong>), and at the
-expected <strong>SCAN</strong> rate.
+expected rate determined from the <strong>HPRD</strong> period.
 </p><p> UDP packets will arrive at the server port from IOCs at this point.
 UDP packets are by their nature unreliable, with some getting dropped
 or delayed (so packets may arrive out of order), so the packet
@@ -60,7 +60,7 @@ construct (binary tree/list/etc.) where the key is the IOC name.
 Below, the values that should be recorded into a data structure are
 noted.
 <dl>
-<dt><strong>Magic Number</strong> (32-bit) - <strong>RMAG</strong></dt>
+<dt><strong>Magic Number</strong> (32-bit) - <strong>HMAG</strong></dt>
 <dd>
 This value is used by the server to weed out UDP packets sent to it
 that it does not expect or want.  A server typically would allow only
@@ -86,6 +86,9 @@ measured by the IOC.</dd>
 <dd>This value should be recorded.  It increases by one each time the
 remote alive record processes.  If a packet with a lower heartbeat
 value arrives, it should be ignored as it came out of order.</dd>
+<dt><strong>Period</strong> (16-bit)</dt>
+<dd>This value should be recorded and is the period used for sending
+heartbeats, which can be used for determining failure.</dd>
 <dt><strong>Flags</strong> (16-bit)</dt>
 <dd>This value holds bit flags for the server, and they need to be
 acted on.  Currently, the bits only deal with a TCP callback to the
@@ -126,11 +129,11 @@ variable at the server.</dd>
 <p>
 When an IOC is turned off or crashes, there is no immediate detection
 of failure.  This determination depends on the rate of heartbeats and
-the number of missing heartbeats.  For a <strong>SCAN</strong> rate of
-10 seconds, a failure declared after six missing heartbeats would be a
-minute.  This is fairly conservative, and if you are certain that the
-network between the IOCs and the server doesn't drop many packets, the
-packet number can be reduced; the <strong>SCAN</strong> rate could
+the number of missing heartbeats.  For a <strong>HPRD</strong> rate of
+15 seconds, a failure declared after four missing heartbeats would be
+a minute.  This is fairly conservative, and if you are certain that
+the network between the IOCs and the server doesn't drop many packets,
+the packet number can be reduced; the <strong>HPRD</strong> rate could
 also be increased, although that means more processing at the server.
 </p><p>
 The time value to use for determination of failure should be how long
@@ -146,7 +149,7 @@ negative offset from Linux time of 631152000 seconds (20 years).
 A failure can be actively detected and acted on directly by the
 server, or the server can simply collect data and let polling clients
 determine the failures themselves (which allows for varying failure
-times and <strong>SCAN</strong> rates).
+times and <strong>HPRD</strong> rates).
 </p><p> 
 The up time for an active IOC is the time since the last heartbeat
 plus the difference between the IOC's last current time and its

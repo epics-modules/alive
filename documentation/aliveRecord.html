@@ -52,15 +52,20 @@ be used to send messages as defined by the user.
 <img src="aliveRecord.png">
 
 <p><hr>
-<h1>2. Scan Parameters</h1>
+<h1>2. Operation</h1>
 
 <p>
-The alive record has the standard fields for specifying under what
-circumstances the record will be processed.  See the EPICS Record
-Reference Manual for these fields and their use.
-</p><p>
-The typical setting is "10 seconds", which will result in a heartbeat
-being sent every ten seconds.
+The alive record does not process normally, as most of what it does is
+done in two threads separate from normal record processing.  One
+thread will send UDP heartbeats every <strong>HPRD</strong> seconds to
+a remote server, while the other listens for connections from the
+remote server.  When the record actually does process, the current
+heartbeat that was last sent to the remote server is returned as
+<strong>VAL</strong>.
+</p><p> The default heartbeat period is 15 seconds, which allows for
+declaring failure after a minute, if using four missing hearbeats as
+the condition.  The heartbeating can be turned by setting 
+<strong>HRTBT</strong> to "Off".
 </p>
 
 <p><hr>
@@ -68,18 +73,18 @@ being sent every ten seconds.
 
 <p>
 The <strong>VAL</strong> field holds the current heartbeat value
-(initially zero), and is incremented each time the record processes.
-The value can't be used for timing, as the <strong>SCAN</strong> rate
-will affect how quickly the values changes.
+(initially zero), and is incremented each time a UDP heartbeat is
+sent, every <strong>HPRD</strong> seconds,
+assuming <strong>HRTBT</strong> is set to "On".
 </p><p> The heartbeat UDP packets are sent to a remote server using
 the <strong>RHOST</strong> and <strong>RPORT</strong> fields to
 specify address and port. The <strong>RHOST</strong> needs to be the
 IPv4 numeric address, and not a name.  
 </p><p> The server may employ a magic number to help filter out
 unwanted UDP packets sent to it, and this number is specified in
-the <strong>RMAG</strong> field, and is the first thing sent in the
+the <strong>HMAG</strong> field, and is the first thing sent in the
 heartbeat message; the default corresponds to 0x12345678.  There is a
-field that can be used to send a user-defined message to the
+32-bit field that can be used to send a user-defined message to the
 server, <strong>MSG</strong>, and its usage is left up to the
 implementer.
 </p><p> Unless suppressed, the remote server can attempt to read back
@@ -169,7 +174,31 @@ as a string, in the form of "0-9-1".
 </tr>
 
 <tr>
-<td>RMAG</td>
+<td>HRTBT</td>
+<td>Heartbeating State</td>
+<td>Menu: Off/On</td>
+<td>Yes</td>
+<td>On</td>
+<td>Yes</td>
+<td>Yes</td>
+<td>Yes</td>
+<td>No</td>
+</tr>
+
+<tr>
+<td>HPRD</td>
+<td>Heartbeat Period</td>
+<td>USHORT</td>
+<td>Yes</td>
+<td>15</td>
+<td>Yes</td>
+<td>No</td>
+<td>No</td>
+<td>No</td>
+</tr>
+
+<tr>
+<td>HMAG</td>
 <td>Remote Host Magic Number</td>
 <td>ULONG</td>
 <td>Yes</td>
@@ -473,7 +502,7 @@ Converting them to standard Linux time values means adding a value of
 
 <dl>
 <dt><strong>Magic Number</strong> (32-bit)</dt>
-<dd>The value of this field comes form the <strong>RMAG</strong>
+<dd>The value of this field comes form the <strong>HMAG</strong>
 field.  It is used by the remote server to delete messages received
 that don't start with this number.</dd>
 <dt><strong>Version of Protocol</strong> (16-bit)</dt>

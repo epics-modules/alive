@@ -484,9 +484,10 @@ void *ioc_alive_send(void *data)
 
   while(1)
     {
-      if( prpvt->fault_flag || !prpvt->ready_flag)
+      if( prpvt->fault_flag || !prpvt->ready_flag || 
+          (prec->hrtbt == aliveHRTBT_OFF ) )
         {
-          epicsThreadSleep( (double) prec->prd);
+          epicsThreadSleep( (double) prec->hprd);
           continue;
         }
 
@@ -495,7 +496,7 @@ void *ioc_alive_send(void *data)
       p = buffer;
 
       // magic signature, to help weed out probes
-      message = htonl(prec->rmag);
+      message = htonl(prec->hmag);
       *((uint32_t *) p) = message;
       p += 4;
 
@@ -521,7 +522,7 @@ void *ioc_alive_send(void *data)
       p += 4;
 
       // period
-      message = htons( prec->prd);
+      message = htons( prec->hprd);
       *((uint16_t *) p) = message;
       p += 2;
 
@@ -558,7 +559,7 @@ void *ioc_alive_send(void *data)
       /* check event list */
       monitor(prec);
 
-      epicsThreadSleep( (double) prec->prd);
+      epicsThreadSleep( (double) prec->hprd);
     }
 
   return NULL;
@@ -596,8 +597,8 @@ static long init_record(void *precord, int pass)
   prec->iport = 0;
 
   // if period is set to 0, use default of 15
-  if( !prec->prd)
-    prec->prd = 15;
+  if( !prec->hprd)
+    prec->hprd = 15;
 
   prpvt->fault_flag = 0;
   prpvt->ready_flag = 0;
