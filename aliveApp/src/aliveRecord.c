@@ -4,6 +4,7 @@
 #ifdef vxWorks
   #include <version.h>
   #include <bootLib.h>
+  #include <unistd.h>
   #if defined(_WRS_VXWORKS_MAJOR) && (_WRS_VXWORKS_MAJOR >= 6) 
     #include <errnoLib.h>
     #include <netinet/in.h>
@@ -19,6 +20,9 @@
   #include <pwd.h>
   #include <grp.h>
   #include <sys/types.h>
+#elif defined (_WIN32)
+  #include <winsock2.h>
+  #include <stdint.h> 
 #endif
 
 #include <stddef.h>
@@ -27,7 +31,6 @@
 #include <errno.h>
 #include <stdio.h>
 #include <string.h>
-#include <unistd.h>
 
 #include <errlog.h>
 #include <epicsTime.h>
@@ -135,20 +138,18 @@ struct rpvtStruct
 
   SOCKET socket;
   struct sockaddr_in h_addr;
-
-  char buffer[16];
 };
 
 
 #ifdef vxWorks
-static void bootparam_write( SOCKET sock, char *string)
+static void bootparam_send( SOCKET sock, char *string)
 {
   uint8_t len8;
 
   len8 = strlen( string);
-  write( sock, (void *) &len8, sizeof(uint8_t) );
+  send( sock, (void *) &len8, sizeof(uint8_t), 0);
   if( len8)
-    write( sock, string, len8 );
+    send( sock, string, len8, 0);
 }
 #endif
 
@@ -179,14 +180,21 @@ void *ioc_alive_listen(void *data)
   int number;
   int type;
 
+#if defined (vxWorks)
+  BOOT_PARAMS bootparams;
+#endif
 #if defined (linux) || defined (darwin)
   char *user;
   char *group;
   char *hostname;
   char hostname_buffer[129];
 #endif
-#ifdef vxWorks
-  BOOT_PARAMS bootparams;
+#if defined (_WIN32)
+  char *user;
+  char user_buffer[80];
+  char *machine;
+  char machine_buffer[20];
+  char osversion[30];
 #endif
 
   int i;
@@ -199,6 +207,8 @@ void *ioc_alive_listen(void *data)
   type = 2;
 #elif defined (darwin)
   type = 3;
+#elif defined (_WIN32)
+  type = 4;
 #else
   type = 0;
 #endif
@@ -207,7 +217,7 @@ void *ioc_alive_listen(void *data)
   bzero( (char *) &l_addr, sizeof( struct sockaddr_in) );
   l_addr.sin_len = sizeof( struct sockaddr_in);
 #else
-  bzero( &l_addr, sizeof( struct sockaddr_in) );
+  memset( &l_addr, 0, sizeof( struct sockaddr_in) );
 #endif
   l_addr.sin_family = AF_INET;
   l_addr.sin_addr.s_addr = htonl(INADDR_ANY);
@@ -269,29 +279,28 @@ void *ioc_alive_listen(void *data)
       osiSocklen_t r_len = sizeof( r_addr);
 
       client_sockfd = epicsSocketAccept( tcp_sockfd, &r_addr, &r_len);
+      if (client_sockfd == INVALID_SOCKET)
+        continue;
 
       // fault flag can't happen, but just in case
       if( prec->isup || prpvt->fault_flag || !prpvt->ready_flag || 
           ( ((struct sockaddr_in *)&r_addr)->sin_addr.s_addr != prpvt->h_addr.sin_addr.s_addr) )
         {
-          /* close(client_sockfd); */
           epicsSocketDestroy(client_sockfd);
           continue;
         }
 
       // TCP protocol version
       msg16 = htons(PROTOCOL_VERSION);
-      write( client_sockfd, (void *) &msg16, sizeof(uint16_t) );
+      send( client_sockfd, (void *) &msg16, sizeof(uint16_t), 0);
 
       // IOC type, currently 1 = vxworks, 2 = linux, 3 = darwin
       msg16 = htons(type);
-      write( client_sockfd, (void *) &msg16, sizeof(uint16_t) );
+      send( client_sockfd, (void *) &msg16, sizeof(uint16_t), 0);
 
       number = 0;
-      length = 10;  // from version + flag + number + length
-#ifdef vxWorks
-      //      flag == 1, vxworks
-
+      length = 10;  // from version + type + number + length
+#if defined (vxWorks)
       memset( &bootparams, 0, sizeof( BOOT_PARAMS) );
       bootStringToStruct( sysBootLine, &bootparams);
       // don't check to see if it returns EOS, as it's zeroed out
@@ -352,6 +361,41 @@ void *ioc_alive_listen(void *data)
       if( hostname != NULL)
         length += ((uint8_t) strlen(hostname) );
 #endif
+#if defined (_WIN32)
+      {
+        uint32_t size;
+        uint32_t raw_version;
+        int version_major, version_minor, build;
+
+        length += 3; // three variable lengths
+
+        size = 80;
+        if (GetUserNameA(user_buffer, &size))
+          {
+            user = user_buffer;
+            length += ((uint8_t)strlen(user));
+          }
+        else
+          user = NULL;
+
+        size = 20;
+        if (GetComputerNameA(machine_buffer, &size))
+          {
+            machine = machine_buffer;
+            length += ((uint8_t)strlen(machine));
+          }
+        else
+          machine = NULL;
+
+        raw_version = GetVersion();
+        version_major = LOBYTE(LOWORD(raw_version));
+        version_minor = HIBYTE(LOWORD(raw_version));
+        build = HIWORD(raw_version);
+        // Windows stupidly doesn't have snprintf()
+        sprintf( osversion, "%d.%d (%d)\n", version_major, version_minor, build);
+        length += ((uint8_t)strlen(osversion));
+      }
+#endif
       for( i = 0; i < ENV_CNT; i++)
         {
           if( prpvt->env[i][0] == '\0')
@@ -379,9 +423,9 @@ void *ioc_alive_listen(void *data)
       /* printf("%d\n", length); fflush(stdout); */
 
       msg32 = htonl( length);
-      write( client_sockfd, (void *) &msg32, sizeof(uint32_t) );
+      send( client_sockfd, (void *) &msg32, sizeof(uint32_t), 0);
       msg16 = htons( number);
-      write( client_sockfd, (void *) &msg16, sizeof(uint16_t) );
+      send( client_sockfd, (void *) &msg16, sizeof(uint16_t), 0);
 
       for( i = 0; i < ENV_CNT; i++)
         {
@@ -389,63 +433,83 @@ void *ioc_alive_listen(void *data)
             continue;
 
           len8 = env_len[i][0];
-          write( client_sockfd, (void *) &len8, sizeof(uint8_t) );
-          write( client_sockfd, prpvt->env[i], len8);
+          send( client_sockfd, (void *) &len8, sizeof(uint8_t), 0);
+          send( client_sockfd, prpvt->env[i], len8, 0);
 
           q = getenv(prpvt->env[i]);
           len16 = env_len[i][1];
           msg16 = htons( len16);
-          write( client_sockfd, (void *) &msg16, sizeof(uint16_t) );
+          send( client_sockfd, (void *) &msg16, sizeof(uint16_t), 0);
           if( len16)
-            write( client_sockfd, q, len16 );
+            send( client_sockfd, q, len16, 0);
         }
 
 #ifdef vxWorks
-      bootparam_write( client_sockfd, bootparams.bootDev);
+      bootparam_send( client_sockfd, bootparams.bootDev);
       msg32 = htonl(bootparams.unitNum);
-      write( client_sockfd, (void *) &msg32, sizeof(uint32_t) );
+      send( client_sockfd, (void *) &msg32, sizeof(uint32_t), 0);
       msg32 = htonl(bootparams.procNum);
-      write( client_sockfd, (void *) &msg32, sizeof(uint32_t) );
-      bootparam_write( client_sockfd, bootparams.hostName);
-      bootparam_write( client_sockfd, bootparams.bootFile);
-      bootparam_write( client_sockfd, bootparams.ead);
-      bootparam_write( client_sockfd, bootparams.bad);
-      bootparam_write( client_sockfd, bootparams.had);
-      bootparam_write( client_sockfd, bootparams.gad);
-      bootparam_write( client_sockfd, bootparams.usr);
-      bootparam_write( client_sockfd, bootparams.passwd);
+      send( client_sockfd, (void *) &msg32, sizeof(uint32_t), 0);
+      bootparam_send( client_sockfd, bootparams.hostName);
+      bootparam_send( client_sockfd, bootparams.bootFile);
+      bootparam_send( client_sockfd, bootparams.ead);
+      bootparam_send( client_sockfd, bootparams.bad);
+      bootparam_send( client_sockfd, bootparams.had);
+      bootparam_send( client_sockfd, bootparams.gad);
+      bootparam_send( client_sockfd, bootparams.usr);
+      bootparam_send( client_sockfd, bootparams.passwd);
       msg32 = htonl( bootparams.flags);
-      write( client_sockfd, (void *) &msg32, sizeof(uint32_t) );
-      bootparam_write( client_sockfd, bootparams.targetName);
-      bootparam_write( client_sockfd, bootparams.startupScript);
-      bootparam_write( client_sockfd, bootparams.other);
+      send( client_sockfd, (void *) &msg32, sizeof(uint32_t), 0);
+      bootparam_send( client_sockfd, bootparams.targetName);
+      bootparam_send( client_sockfd, bootparams.startupScript);
+      bootparam_send( client_sockfd, bootparams.other);
 #endif
 #if defined (linux) || defined (darwin)
       if( user == NULL)
         len8 = 0;
       else
         len8 = strlen( user);
-      write( client_sockfd, (void *) &len8, sizeof(uint8_t) );
+      send( client_sockfd, (void *) &len8, sizeof(uint8_t), 0);
       if( user != NULL)
-        write( client_sockfd, user, len8 );
+        send( client_sockfd, user, len8, 0);
 
       if( group == NULL)
         len8 = 0;
       else
         len8 = strlen( group);
-      write( client_sockfd, (void *) &len8, sizeof(uint8_t) );
+      send( client_sockfd, (void *) &len8, sizeof(uint8_t), 0);
       if( group != NULL)
-        write( client_sockfd, group, len8 );
+        send( client_sockfd, group, len8, 0);
 
       if( hostname == NULL)
         len8 = 0;
       else
         len8 = strlen( hostname);
-      write( client_sockfd, (void *) &len8, sizeof(uint8_t) );
+      send( client_sockfd, (void *) &len8, sizeof(uint8_t), 0);
       if( hostname != NULL)
-        write( client_sockfd, hostname, len8 );
+        send( client_sockfd, hostname, len8, 0);
 #endif
-      /* close( client_sockfd); */
+#if defined (_WIN32)
+	  if (user == NULL)
+		  len8 = 0;
+	  else
+		  len8 = strlen(user);
+	  send(client_sockfd, (void *)&len8, sizeof(uint8_t), 0);
+	  if (user != NULL)
+		  send(client_sockfd, user, len8, 0);
+
+	  if (machine == NULL)
+		  len8 = 0;
+	  else
+		  len8 = strlen(machine);
+	  send(client_sockfd, (void *)&len8, sizeof(uint8_t), 0);
+	  if (machine != NULL)
+		  send(client_sockfd, machine, len8, 0);
+
+	  len8 = strlen(osversion);
+	  send(client_sockfd, (void *)&len8, sizeof(uint8_t), 0);
+	  send(client_sockfd, osversion, len8, 0);
+#endif
       epicsSocketDestroy( client_sockfd);
 
       // turn off request flag
@@ -580,7 +644,9 @@ static long init_record(void *precord, int pass)
 
   if( pass == 0) 
     {
-      prec->rpvt = calloc(1, sizeof(struct rpvtStruct));
+      // last element of struct rpvtStruct keeps coming out as 
+      // zero length array, so pad it a bit to do a kludge fix
+      prec->rpvt = calloc(1, sizeof(struct rpvtStruct) + 16);
 
       return 0;
     }
@@ -622,12 +688,18 @@ static long init_record(void *precord, int pass)
       prpvt->fault_flag = 1;
       return 1;
     }
+#ifdef vxWorks
   bzero( (void *) &(prpvt->h_addr), sizeof(struct sockaddr_in) );
+#else
+  memset( (void *) &(prpvt->h_addr), 0, sizeof(struct sockaddr_in) );
+#endif
   prpvt->h_addr.sin_family = AF_INET;
   prpvt->h_addr.sin_port = htons(prec->rport);
-#ifdef vxWorks
+#if defined (vxWorks)
   prpvt->h_addr.sin_len = (u_char) sizeof (struct sockaddr_in); 
   if( (prpvt->h_addr.sin_addr.s_addr = inet_addr (prec->rhost)) != ERROR)
+#elif defined (_WIN32)
+  if ((prpvt->h_addr.sin_addr.s_addr = inet_addr(prec->rhost)) != INADDR_NONE)
 #else
   if( inet_aton( prec->rhost, &(prpvt->h_addr.sin_addr)) )
 #endif
@@ -701,8 +773,10 @@ static long special(DBADDR *paddr, int after)
   switch(fieldIndex) 
     {
     case(aliveRecordRHOST):
-#ifdef vxWorks
+#if defined (vxWorks)
       if( (prpvt->h_addr.sin_addr.s_addr = inet_addr (prec->rhost)) == ERROR)
+#elif defined (_WIN32)
+      if( (prpvt->h_addr.sin_addr.s_addr = inet_addr(prec->rhost)) == INADDR_NONE)
 #else
       if( !inet_aton( prec->rhost, &(prpvt->h_addr.sin_addr)) )
 #endif
