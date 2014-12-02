@@ -194,7 +194,6 @@ void *ioc_alive_listen(void *data)
   char user_buffer[80];
   char *machine;
   char machine_buffer[20];
-  char osversion[30];
 #endif
 
   int i;
@@ -364,10 +363,8 @@ void *ioc_alive_listen(void *data)
 #if defined (_WIN32)
       {
         uint32_t size;
-        uint32_t raw_version;
-        int version_major, version_minor, build;
 
-        length += 3; // three variable lengths
+        length += 2; // two variable lengths
 
         size = 80;
         if (GetUserNameA(user_buffer, &size))
@@ -386,14 +383,6 @@ void *ioc_alive_listen(void *data)
           }
         else
           machine = NULL;
-
-        raw_version = GetVersion();
-        version_major = LOBYTE(LOWORD(raw_version));
-        version_minor = HIBYTE(LOWORD(raw_version));
-        build = HIWORD(raw_version);
-        // Windows stupidly doesn't have snprintf()
-        sprintf( osversion, "%d.%d (%d)\n", version_major, version_minor, build);
-        length += ((uint8_t)strlen(osversion));
       }
 #endif
       for( i = 0; i < ENV_CNT; i++)
@@ -505,10 +494,6 @@ void *ioc_alive_listen(void *data)
 	  send(client_sockfd, (void *)&len8, sizeof(uint8_t), 0);
 	  if (machine != NULL)
 		  send(client_sockfd, machine, len8, 0);
-
-	  len8 = strlen(osversion);
-	  send(client_sockfd, (void *)&len8, sizeof(uint8_t), 0);
-	  send(client_sockfd, osversion, len8, 0);
 #endif
       epicsSocketDestroy( client_sockfd);
 
