@@ -199,7 +199,7 @@ as a string, in the form of "0-9-1".
 
 <tr>
 <td>HMAG</td>
-<td>Remote Host Magic Number</td>
+<td>Heartbeat Magic Number</td>
 <td>ULONG</td>
 <td>Yes</td>
 <td>305419896</td>
@@ -413,13 +413,14 @@ in <strong>RHOST</strong>, and as long as <strong>ISUP</strong> is
 Off.  The message sent back upon request is a list of the specified
 environment variables, the IOC type, and the data special to that
 type.
-</p>
+</p><p> If the <strong>HPRD</strong> is initially zero, then it is
+reassigned to the default value, which is currently 15.
 
 <h3>process</h3>
 
 <p>
-The field <strong>VAL</strong> is incremented, and the current time
-recorded.  A heartbeat message is sent to the remote server.
+Nothing actually happens, other than the forward link get processed.
+Heartbeats are controlled purely by a timed thread.
 </p>
 
 <h3>special</h3>
@@ -434,14 +435,14 @@ no sending heartbeats will occur.
 <h1>5. Message Protocol</h1>
 
 This section describes the current protocol,
-version <strong>4</strong>. All messages sent use network order.
+version <strong>5</strong>. All messages sent use network order.
 
 <h3>Heartbeat Message</h3>
 
 <p>
 This is the UDP message sent for each processing of the record.  The
-minimum size for a message payload is 28 bytes, being being fixed
-fields of 26 bytes with a null-terminated string.  All values are unsigned.
+minimum size for a message payload is 30 bytes, being being fixed
+fields of 28 bytes with a null-terminated string.  All values are unsigned.
 </p><p> 
 The time values sent are EPICS time values, which are relative to 1990.
 Converting them to standard Linux time values means adding a value of
@@ -479,11 +480,13 @@ Converting them to standard Linux time values means adding a value of
 <td colspan="10">24</td>
 <td colspan="10">25</td>
 <th colspan="10">26</th>
+<th colspan="10">27</th>
+<th colspan="10">28</th>
 <td colspan="10">...</td>
 <td colspan="10">...</td>
 <td colspan="10">...</td>
 <td colspan="10">...</td>
-<th colspan="10">26+x</th>
+<th colspan="10">28+x</th>
 </tr>
 <tr>
 <th>Field</th>
@@ -492,6 +495,7 @@ Converting them to standard Linux time values means adding a value of
 <td colspan="40">Incarnation</td>
 <td colspan="40">Current Time</td>
 <td colspan="40">Heartbeat Value</td>
+<td colspan="20">Period</td>
 <td colspan="20">Flags</td>
 <td colspan="20">Return Port</td>
 <td colspan="40">User Message</td>
@@ -508,7 +512,9 @@ that don't start with this number.</dd>
 <dt><strong>Version of Protocol</strong> (16-bit)</dt>
 <dd>The value of this field is the current version of the protocol for
 this record.  The remote server can handle or ignore a particular
-version as it sees fit.</dd>
+version as it sees fit. If the version number does not match the one
+that this document describes, the fields after this one will most
+likely differ in some way.</dd>
 <dt><strong>Incarnation</strong> (32-bit)</dt>
 <dd>This value is a unique number for this particular boot of the IOC.
 It's also the boot time as measured by the IOC, which should be unique
@@ -518,6 +524,10 @@ initialization happens.</dd>
 <dd>This is the current time as measure by the IOC.</dd>
 <dt><strong>Heartbeat Value</strong> (32-bit)</dt>
 <dd>This is the current value of the <strong>VAL</strong> field</dd>
+<dt><strong>Period</strong> (16-bit)</dt>
+<dd>This is the heartbeat period used by the alive record, which is to
+be used for determining the operational status of the IOC, and comes
+from <strong>HPRD</strong>.</dd>
 <dt><strong>Flags</strong> (16-bit)</dt>
 <dd>This value holds bit flags for the server. 
 <ul>
@@ -592,6 +602,7 @@ of the message.
 <li><strong>1)</strong> VxWorks: The boot parameters are sent.</li>
 <li><strong>2)</strong> Linux: The user and group IDs of the process as well as the hostname are sent.</li>
 <li><strong>3)</strong> Darwin: The user and group IDs of the process as well as the hostname are sent.</li>
+<li><strong>4)</strong> Windows: The login name and machine name are sent.</li>
 </dd>
 <dt><strong>Message Length</strong> (32-bit)</dt>
 <dd>This is the length of the entire message.</dd>
@@ -703,6 +714,22 @@ string itself.
 </table>
 </p>
 
+<h4>Windows</h4>
+<p> For Windows, the extra information is the login name of the IOC
+process, as well as the machine name of the host computer.  The data
+are represented by an 8-bit string length, followed by the string
+itself.
+</p>
+<p>
+<table border style="margin: 0; text-align: center; border-collapse:collapse">
+<caption><strong>Extra Windows Information Format</strong></caption>
+<tr>
+<th>Field Order</th>
+<td>Login name (str)</td>
+<td>Machine name (str)</td>
+</tr>
+</table>
+</p>
 
 <hr>
 

@@ -71,8 +71,11 @@ base</b>.  There are no dependencies on any other modules.</li>
 
 <ul>
 
-<li>Configure an alive record to talk to a remote server daemon that understands how to talk to this type of record..</li>
-<li>Make sure that the ISUP field is set to "Off"</li>
+<li>Configure an alive record to talk to a remote server daemon that understands how to talk to this type of record.</li>
+<li>Make sure that IPSTS gets set to "Operable", otherwise the
+information port is not working.</li>
+<li>Make sure that the HRTBT field is set to "On" (the default).</li>
+<li>Make sure that the ISUP field is set to "Off" (the default).</li>
 <li>Set ITRIG field to "Trigger".  If ITRIG goes back to being "Idle",
 then the remote daemon has read the boot information, meaning the
 record is successfully talking to the daemon.</li>
