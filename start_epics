@@ -1,2 +1,2 @@
-medm -x -macro "P=alive:" aliveApp/op/adl/aliveRecord.adl &
+medm -x -macro "P=aliveEx:" aliveApp/op/adl/aliveRecord.adl &
 

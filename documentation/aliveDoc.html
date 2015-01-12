@@ -34,13 +34,13 @@ alive record about the extra information.</dd>
   
   The <strong>RHOST</strong> is defined using "$(RHOST)".  The rest of
   the fields that can be specified have defaults in them that can be
-  overridden.  The default for "$(RPORT)" is "5678".  If multiple IOC
-  are to run on the same computer, then "$(IPORT)" for each IOC should
-  have a different value or all "$(IPORT)" values should be set to
-  zero to allow the system to determine it.  Only the first six of the
-  ten environment variable fields, "$(ENV1)" to "$(ENV10)", have
-  defaults, being "ARCH", "TOP", "EPICS_BASE", "SUPPORT", "ENGINEER",
-  and "LOCATION".
+  overridden.  The default for "$(RPORT)" is "5678", and for "$(HPRD)"
+  is "15".  If multiple IOC are to run on the same computer, then
+  "$(IPORT)" for each IOC should have a different value, or all
+  "$(IPORT)" values should be set to zero to allow the system to
+  determine it.  Only the first six of the ten environment variable
+  fields, "$(ENV1)" to "$(ENV10)", have defaults, being "ARCH", "TOP",
+  "EPICS_BASE", "SUPPORT", "ENGINEER", and "LOCATION".
 </dl>
 
 

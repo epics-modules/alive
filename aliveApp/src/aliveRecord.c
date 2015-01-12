@@ -61,9 +61,9 @@
 #define LT_EPICSBASE(V,R,M,P) (EPICS_VERSION_INT < VERSION_INT((V),(R),(M),(P)))
 
 
-#define ALIVE_VERSION (0)
-#define ALIVE_REVISION (9)
-#define ALIVE_MODIFICATION (1)
+#define ALIVE_VERSION (1)
+#define ALIVE_REVISION (0)
+#define ALIVE_MODIFICATION (0)
 
 #define PROTOCOL_VERSION (5)
 
