@@ -6,6 +6,7 @@
 < envPaths
 
 epicsEnvSet("ENGINEER","Tester")
+epicsEnvSet("GROUP","AES-BCDA")
 
 cd ${TOP}
 
