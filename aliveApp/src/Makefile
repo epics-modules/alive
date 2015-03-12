@@ -21,6 +21,8 @@ DBD += aliveSupport.dbd
 alive_SRCS += aliveRecord.c
 #alive_SRCS += devAliveSoft.c
 
+alive_SYS_LIBS_WIN32 += ws2_64
+alive_SYS_LIBS_WIN32 += Advapi32
 
 alive_LIBS += $(EPICS_BASE_IOC_LIBS)
 
