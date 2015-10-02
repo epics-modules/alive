@@ -117,6 +117,42 @@ recordtype(alive) {
                 size(40)
                 initial("")
         }
+        field(ENV11,DBF_STRING) {
+                prompt("Environment variable 11")
+                special(SPC_MOD)
+                size(40)
+                initial("")
+        }
+        field(ENV12,DBF_STRING) {
+                prompt("Environment variable 12")
+                special(SPC_MOD)
+                size(40)
+                initial("")
+        }
+        field(ENV13,DBF_STRING) {
+                prompt("Environment variable 13")
+                special(SPC_MOD)
+                size(40)
+                initial("")
+        }
+        field(ENV14,DBF_STRING) {
+                prompt("Environment variable 14")
+                special(SPC_MOD)
+                size(40)
+                initial("")
+        }
+        field(ENV15,DBF_STRING) {
+                prompt("Environment variable 15")
+                special(SPC_MOD)
+                size(40)
+                initial("")
+        }
+        field(ENV16,DBF_STRING) {
+                prompt("Environment variable 16")
+                special(SPC_MOD)
+                size(40)
+                initial("")
+        }
 
         field(IPORT,DBF_USHORT) {
                 prompt("Information port")

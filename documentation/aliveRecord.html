@@ -15,7 +15,7 @@
 
 <em>
 Note: This record requires a separate program outside of the scope of
-EPICS for it to be useful.  While code is supplied with this module
+EPICS for it to be useful.  While code will be supplied with this module
 for interacting with alive records, it is intended for it to be
 straightforward to create a different implementation.
 </em>
@@ -115,11 +115,11 @@ connection that occur.  This is useful if the IOC is behind a firewall
 that won't allow a direct TCP connection, telling the server to not
 endlessly try to read.
 </p><p> Names of the environment variables to be sent to the remote
-server upon request are <strong>ENV1</strong>-<strong>ENV10</strong>.
+server upon request are <strong>ENV1</strong>-<strong>ENV16</strong>.
 If the length of the value of a variable is over 65535, an empty
 string will be sent back.
 </p><p>The version of the record is kept in <strong>VER</strong>
-as a string, in the form of "0-9-1".
+as a string, in the form of "1-0-1".
 </p>
 
 
@@ -382,6 +382,72 @@ as a string, in the form of "0-9-1".
 <tr>
 <td>ENV10</td>
 <td>Environment Variable Name 10</td>
+<td>STRING</td>
+<td>Yes</td>
+<td>&nbsp;</td>
+<td>Yes</td>
+<td>Yes</td>
+<td>Yes</td>
+<td>No</td>
+</tr>
+<tr>
+<td>ENV11</td>
+<td>Environment Variable Name 11</td>
+<td>STRING</td>
+<td>Yes</td>
+<td>&nbsp;</td>
+<td>Yes</td>
+<td>Yes</td>
+<td>Yes</td>
+<td>No</td>
+</tr>
+<tr>
+<td>ENV12</td>
+<td>Environment Variable Name 12</td>
+<td>STRING</td>
+<td>Yes</td>
+<td>&nbsp;</td>
+<td>Yes</td>
+<td>Yes</td>
+<td>Yes</td>
+<td>No</td>
+</tr>
+<tr>
+<td>ENV13</td>
+<td>Environment Variable Name 13</td>
+<td>STRING</td>
+<td>Yes</td>
+<td>&nbsp;</td>
+<td>Yes</td>
+<td>Yes</td>
+<td>Yes</td>
+<td>No</td>
+</tr>
+<tr>
+<td>ENV14</td>
+<td>Environment Variable Name 14</td>
+<td>STRING</td>
+<td>Yes</td>
+<td>&nbsp;</td>
+<td>Yes</td>
+<td>Yes</td>
+<td>Yes</td>
+<td>No</td>
+</tr>
+<tr>
+<td>ENV15</td>
+<td>Environment Variable Name 15</td>
+<td>STRING</td>
+<td>Yes</td>
+<td>&nbsp;</td>
+<td>Yes</td>
+<td>Yes</td>
+<td>Yes</td>
+<td>No</td>
+</tr>
+<tr>
+<td>ENV16</td>
+<td>Environment Variable Name 16</td>
 <td>STRING</td>
 <td>Yes</td>
 <td>&nbsp;</td>

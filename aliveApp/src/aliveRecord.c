@@ -63,7 +63,7 @@
 
 #define ALIVE_VERSION (1)
 #define ALIVE_REVISION (0)
-#define ALIVE_MODIFICATION (0)
+#define ALIVE_MODIFICATION (1)
 
 #define PROTOCOL_VERSION (5)
 
@@ -110,7 +110,7 @@ rset aliveRSET =
   };
 epicsExportAddress(rset,aliveRSET);
 
-#define ENV_CNT (10)
+#define ENV_CNT (16)
 
 static void checkAlarms(aliveRecord *prec);
 static void monitor(aliveRecord *prec);
@@ -791,6 +791,12 @@ static long special(DBADDR *paddr, int after)
     case(aliveRecordENV8):
     case(aliveRecordENV9):
     case(aliveRecordENV10):
+    case(aliveRecordENV11):
+    case(aliveRecordENV12):
+    case(aliveRecordENV13):
+    case(aliveRecordENV14):
+    case(aliveRecordENV15):
+    case(aliveRecordENV16):
       relIndex = fieldIndex - aliveRecordENV1;
       f = sscanf( *(&prec->env1 + relIndex), "%s", prpvt->env[relIndex]);
       if( !f)

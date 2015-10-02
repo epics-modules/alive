@@ -1,14 +1,14 @@
 
 file {
-	name="/home/oxygen25/DOHNARMS/controls/epics/alive/aliveRec/aliveApp/op/adl/aliveRecord.adl"
+	name="/home/oxygen25/DOHNARMS/epics_modules/software/alive/aliveRec/aliveApp/op/adl/aliveRecord.adl"
 	version=030107
 }
 display {
 	object {
-		x=1153
-		y=120
+		x=1091
+		y=359
 		width=340
-		height=450
+		height=525
 	}
 	clr=14
 	bclr=3
@@ -190,8 +190,8 @@ text {
 }
 "text entry" {
 	object {
-		x=200
-		y=320
+		x=30
+		y=445
 		width=120
 		height=20
 	}
@@ -205,8 +205,8 @@ text {
 }
 "text entry" {
 	object {
-		x=200
-		y=345
+		x=30
+		y=470
 		width=120
 		height=20
 	}
@@ -220,8 +220,8 @@ text {
 }
 "text entry" {
 	object {
-		x=200
-		y=370
+		x=30
+		y=495
 		width=120
 		height=20
 	}
@@ -236,7 +236,7 @@ text {
 "text entry" {
 	object {
 		x=200
-		y=395
+		y=320
 		width=120
 		height=20
 	}
@@ -251,7 +251,7 @@ text {
 "text entry" {
 	object {
 		x=200
-		y=420
+		y=345
 		width=120
 		height=20
 	}
@@ -330,8 +330,8 @@ text {
 }
 text {
 	object {
-		x=175
-		y=320
+		x=5
+		y=445
 		width=20
 		height=18
 	}
@@ -343,8 +343,8 @@ text {
 }
 text {
 	object {
-		x=175
-		y=345
+		x=5
+		y=470
 		width=20
 		height=18
 	}
@@ -356,8 +356,8 @@ text {
 }
 text {
 	object {
-		x=175
-		y=370
+		x=5
+		y=495
 		width=20
 		height=18
 	}
@@ -370,7 +370,7 @@ text {
 text {
 	object {
 		x=175
-		y=395
+		y=320
 		width=20
 		height=18
 	}
@@ -383,7 +383,7 @@ text {
 text {
 	object {
 		x=175
-		y=420
+		y=345
 		width=20
 		height=18
 	}
@@ -812,4 +812,172 @@ polyline {
 		(6,96)
 		(330,96)
 	}
+}
+"text entry" {
+	object {
+		x=200
+		y=370
+		width=120
+		height=20
+	}
+	control {
+		chan="$(P)alive.ENV11"
+		clr=14
+		bclr=51
+	}
+	limits {
+	}
+}
+"text entry" {
+	object {
+		x=200
+		y=395
+		width=120
+		height=20
+	}
+	control {
+		chan="$(P)alive.ENV12"
+		clr=14
+		bclr=51
+	}
+	limits {
+	}
+}
+"text entry" {
+	object {
+		x=200
+		y=420
+		width=120
+		height=20
+	}
+	control {
+		chan="$(P)alive.ENV13"
+		clr=14
+		bclr=51
+	}
+	limits {
+	}
+}
+"text entry" {
+	object {
+		x=200
+		y=445
+		width=120
+		height=20
+	}
+	control {
+		chan="$(P)alive.ENV14"
+		clr=14
+		bclr=51
+	}
+	limits {
+	}
+}
+"text entry" {
+	object {
+		x=200
+		y=470
+		width=120
+		height=20
+	}
+	control {
+		chan="$(P)alive.ENV15"
+		clr=14
+		bclr=51
+	}
+	limits {
+	}
+}
+"text entry" {
+	object {
+		x=200
+		y=495
+		width=120
+		height=20
+	}
+	control {
+		chan="$(P)alive.ENV16"
+		clr=14
+		bclr=51
+	}
+	limits {
+	}
+}
+text {
+	object {
+		x=175
+		y=370
+		width=20
+		height=18
+	}
+	"basic attribute" {
+		clr=14
+	}
+	textix="11"
+	align="horiz. right"
+}
+text {
+	object {
+		x=175
+		y=395
+		width=20
+		height=18
+	}
+	"basic attribute" {
+		clr=14
+	}
+	textix="12"
+	align="horiz. right"
+}
+text {
+	object {
+		x=175
+		y=420
+		width=20
+		height=18
+	}
+	"basic attribute" {
+		clr=14
+	}
+	textix="13"
+	align="horiz. right"
+}
+text {
+	object {
+		x=175
+		y=445
+		width=20
+		height=18
+	}
+	"basic attribute" {
+		clr=14
+	}
+	textix="14"
+	align="horiz. right"
+}
+text {
+	object {
+		x=175
+		y=470
+		width=20
+		height=18
+	}
+	"basic attribute" {
+		clr=14
+	}
+	textix="15"
+	align="horiz. right"
+}
+text {
+	object {
+		x=175
+		y=495
+		width=20
+		height=18
+	}
+	"basic attribute" {
+		clr=14
+	}
+	textix="16"
+	align="horiz. right"
 }

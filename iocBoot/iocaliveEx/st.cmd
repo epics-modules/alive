@@ -6,7 +6,8 @@
 < envPaths
 
 epicsEnvSet("ENGINEER","Tester")
-epicsEnvSet("GROUP","AES-BCDA")
+epicsEnvSet("LOCATION","Office")
+epicsEnvSet("GROUP","BCDA")
 
 cd ${TOP}
 
@@ -15,7 +16,7 @@ dbLoadDatabase "dbd/aliveEx.dbd"
 aliveEx_registerRecordDeviceDriver pdbbase
 
 ## Load record instances
-dbLoadRecords "db/alive.db", "P=aliveEx:,RHOST=x.x.x.x"
+dbLoadRecords "db/alive.db", "P=aliveEx:,RHOST=xxx.xxx.xxx.xxx"
 
 
 ## Run this to trace the stages of iocInit
