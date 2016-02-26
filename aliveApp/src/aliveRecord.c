@@ -62,8 +62,8 @@
 
 
 #define ALIVE_VERSION (1)
-#define ALIVE_REVISION (0)
-#define ALIVE_MODIFICATION (1)
+#define ALIVE_REVISION (1)
+#define ALIVE_MODIFICATION (0)
 
 #define PROTOCOL_VERSION (5)
 
@@ -690,25 +690,25 @@ static long init_record(void *precord, int pass)
 #endif
     prpvt->ready_flag = 1;
 
-  p = getenv("IOC");
+  p = getenv(prec->nmvar);
   if( p == NULL)
     {
       errlogSevPrintf( errlogFatal, "%s", "alive record: "
-                       "Won't start, can't get IOC environment variable.\n");
+                       "Won't start, can't get IOC name environment variable.\n");
       prpvt->fault_flag = 1;
       return 1;
     }
   // condition is sanity check, as the output buffer is static
-  if( strlen( p) > 100)
+  if( strlen( p) > 39)
     {
       errlogSevPrintf( errlogFatal, "%s", "alive record: "
                        "Won't start, environment variable IOC too long.\n");
       prpvt->fault_flag = 1;
       return 1;
     }
-  strncpy(prpvt->ioc_name, p, 40);
-  prpvt->ioc_name[40] = '\0';
-
+  strncpy(prpvt->ioc_name, p, 39);
+  prpvt->ioc_name[39] = '\0';
+  strncpy(prec->iocnm, prpvt->ioc_name, 40);
   prpvt->listen_thread = 
     epicsThreadCreate("alive_tcp_listen_thread", 51, 
                       epicsThreadGetStackSize(epicsThreadStackMedium),

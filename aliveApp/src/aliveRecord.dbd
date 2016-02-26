@@ -178,6 +178,19 @@ recordtype(alive) {
                 initial("Off")
         }
 
+        field(NMVAR,DBF_STRING) {
+                prompt("IOC name variable")
+                special(SPC_NOMOD)
+                size(40)
+                initial("IOC")
+        }
+        field(IOCNM,DBF_STRING) {
+                prompt("IOC name")
+                special(SPC_NOMOD)
+                size(40)
+                initial("")
+        }
+
         field(VER,DBF_STRING) {
                 prompt("Record version")
                 special(SPC_NOMOD)
