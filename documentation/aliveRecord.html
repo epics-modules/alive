@@ -79,14 +79,17 @@ assuming <strong>HRTBT</strong> is set to "On".
 </p><p> The heartbeat UDP packets are sent to a remote server using
 the <strong>RHOST</strong> and <strong>RPORT</strong> fields to
 specify address and port. The <strong>RHOST</strong> needs to be the
-IPv4 numeric address, and not a name.  
-</p><p> The server may employ a magic number to help filter out
-unwanted UDP packets sent to it, and this number is specified in
-the <strong>HMAG</strong> field, and is the first thing sent in the
-heartbeat message; the default corresponds to 0x12345678.  There is a
-32-bit field that can be used to send a user-defined message to the
-server, <strong>MSG</strong>, and its usage is left up to the
-implementer.
+IPv4 numeric address, and not a name.
+</p><p> The IOC's name sent to the server is contained in the
+environment variable specified by <strong>NMVAR</strong>, which
+defaults to "IOC".  The actual name being sent can be seen in
+the <strong>IOCNM</strong> variable.  The server may employ a magic
+number to help filter out unwanted UDP packets sent to it, and this
+number is specified in the <strong>HMAG</strong> field, and is the
+first thing sent in the heartbeat message; the default corresponds to
+0x12345678.  There is a 32-bit field that can be used to send a
+user-defined message to the server, <strong>MSG</strong>, and its
+usage is left up to the implementer.
 </p><p> Unless suppressed, the remote server can attempt to read back
 the environment variables and other information using the TCP port
 specified by <strong>IPORT</strong>.  If initialized to 0, an
@@ -191,6 +194,30 @@ as a string, in the form of "1-0-1".
 <td>USHORT</td>
 <td>Yes</td>
 <td>15</td>
+<td>Yes</td>
+<td>No</td>
+<td>No</td>
+<td>No</td>
+</tr>
+
+<tr>
+<td>NMVAR</td>
+<td>IOC Name Environment Variable</td>
+<td>STRING</td>
+<td>Yes</td>
+<td>IOC</td>
+<td>Yes</td>
+<td>No</td>
+<td>No</td>
+<td>No</td>
+</tr>
+
+<tr>
+<td>IOCNM</td>
+<td>IOC Name Value/td>
+<td>STRING</td>
+<td>No</td>
+<td>&nbsp;</td>
 <td>Yes</td>
 <td>No</td>
 <td>No</td>

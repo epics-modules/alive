@@ -31,6 +31,10 @@ alive record about the extra information.</dd>
 <dt>alive.db
 <dd>This database is basically a straight implementation of the alive
   record itself.  It creates a record of the name "$(P)alive".
+
+  The name of the IOC sent back to the server is by default the value
+  of the "IOC" environment variable, but the variable that is used can
+  be changed by setting "$(NMVAR)" to a new value.
   
   The <strong>RHOST</strong> is defined using "$(RHOST)".  The rest of
   the fields that can be specified have defaults in them that can be
