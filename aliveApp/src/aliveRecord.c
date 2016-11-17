@@ -690,25 +690,43 @@ static long init_record(void *precord, int pass)
 #endif
     prpvt->ready_flag = 1;
 
-  p = getenv(prec->nmvar);
-  if( p == NULL)
+  p = prec->iocnm;
+  while(*p != '\0')
     {
-      errlogSevPrintf( errlogFatal, "%s", "alive record: "
-                       "Won't start, can't get IOC name environment variable.\n");
-      prpvt->fault_flag = 1;
-      return 1;
+      if( (*p != ' ') && (*p != '\t'))
+        break;
+      p++;
     }
-  // condition is sanity check, as the output buffer is static
-  if( strlen( p) > 39)
+  if( *p != '\0')
     {
-      errlogSevPrintf( errlogFatal, "%s", "alive record: "
-                       "Won't start, environment variable IOC too long.\n");
-      prpvt->fault_flag = 1;
-      return 1;
+      strncpy(prpvt->ioc_name, p, 39);
+      prpvt->ioc_name[39] = '\0';
+
+      strcpy( prec->nmvar, "----");
     }
-  strncpy(prpvt->ioc_name, p, 39);
-  prpvt->ioc_name[39] = '\0';
-  strncpy(prec->iocnm, prpvt->ioc_name, 40);
+  else
+    {
+      p = getenv(prec->nmvar);
+      if( p == NULL)
+        {
+          errlogSevPrintf( errlogFatal, "%s", "alive record: "
+                           "Won't start, can't get IOC name environment variable.\n");
+          prpvt->fault_flag = 1;
+          return 1;
+        }
+      // condition is sanity check, as the output buffer is static
+      if( strlen( p) > 39)
+        {
+          errlogSevPrintf( errlogFatal, "%s", "alive record: "
+                           "Won't start, environment variable IOC too long.\n");
+          prpvt->fault_flag = 1;
+          return 1;
+        }
+      strncpy(prpvt->ioc_name, p, 39);
+      prpvt->ioc_name[39] = '\0';
+      strncpy(prec->iocnm, prpvt->ioc_name, 40);
+    }
+
   prpvt->listen_thread = 
     epicsThreadCreate("alive_tcp_listen_thread", 51, 
                       epicsThreadGetStackSize(epicsThreadStackMedium),

@@ -80,10 +80,11 @@ assuming <strong>HRTBT</strong> is set to "On".
 the <strong>RHOST</strong> and <strong>RPORT</strong> fields to
 specify address and port. The <strong>RHOST</strong> needs to be the
 IPv4 numeric address, and not a name.
-</p><p> The IOC's name sent to the server is contained in the
-environment variable specified by <strong>NMVAR</strong>, which
-defaults to "IOC".  The actual name being sent can be seen in
-the <strong>IOCNM</strong> variable.  The server may employ a magic
+</p><p> The IOC's actual name as reported to the remote server
+is contained in the <strong>IOCNM</strong> variable.  It can be directly
+set at boot time; if it isn't then the name will be determined by the 
+<strong>NMVAR</strong> variable, which defaults to "IOC" but
+can be set to any environment variable.  The server may employ a magic
 number to help filter out unwanted UDP packets sent to it, and this
 number is specified in the <strong>HMAG</strong> field, and is the
 first thing sent in the heartbeat message; the default corresponds to
@@ -122,7 +123,7 @@ server upon request are <strong>ENV1</strong>-<strong>ENV16</strong>.
 If the length of the value of a variable is over 65535, an empty
 string will be sent back.
 </p><p>The version of the record is kept in <strong>VER</strong>
-as a string, in the form of "1-0-1".
+as a string, in the form of "1-1-0".
 </p>
 
 
@@ -214,9 +215,9 @@ as a string, in the form of "1-0-1".
 
 <tr>
 <td>IOCNM</td>
-<td>IOC Name Value/td>
+<td>IOC Name Value</td>
 <td>STRING</td>
-<td>No</td>
+<td>Yes</td>
 <td>&nbsp;</td>
 <td>Yes</td>
 <td>No</td>
@@ -528,7 +529,7 @@ no sending heartbeats will occur.
 <h1>5. Message Protocol</h1>
 
 This section describes the current protocol,
-version <strong>5</strong>. All messages sent use network order.
+version <strong>5</strong>. All messages sent use network order (big-endian).
 
 <h3>Heartbeat Message</h3>
 
@@ -570,10 +571,10 @@ Converting them to standard Linux time values means adding a value of
 <td colspan="10">21</td>
 <th colspan="10">22</th>
 <td colspan="10">23</td>
-<td colspan="10">24</td>
+<th colspan="10">24</th>
 <td colspan="10">25</td>
-<th colspan="10">26</th>
-<th colspan="10">27</th>
+<td colspan="10">26</td>
+<td colspan="10">27</td>
 <th colspan="10">28</th>
 <td colspan="10">...</td>
 <td colspan="10">...</td>
@@ -627,7 +628,7 @@ from <strong>HPRD</strong>.</dd>
 <li><strong>Bit 0:</strong> Server should read the environment
 variables, as there are updated values or <strong>ITRIG</strong> was
 set. This will be cleared after a successful read.</li>
-<li><strong>Bit 1:</strong> Server can't read the environment
+<li><strong>Bit 1:</strong> Server is not allowed to read the environment
 variables, and will be blocked if tried.  This is set
 by <strong>ISUP</strong>, and this bit overrides bit 0.</li>
 </dd>

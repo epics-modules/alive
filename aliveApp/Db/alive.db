@@ -2,6 +2,7 @@ record(alive, "$(P)alive")
 {
 	field(DESC, "alive record")
         field(NMVAR, "$(NMVAR=IOC)")
+        field(IOCNM, "$(IOCNM=)")
         field(RHOST, "$(RHOST)")
         field(RPORT, "$(RPORT=5678)")
         field(HMAG, "$(HMAG=305419896)")
