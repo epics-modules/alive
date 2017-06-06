@@ -4,7 +4,12 @@ include $(TOP)/configure/CONFIG
 DIRS := $(DIRS) $(filter-out $(DIRS), configure)
 DIRS := $(DIRS) $(filter-out $(DIRS), $(wildcard *App))
 DIRS := $(DIRS) $(filter-out $(DIRS), $(wildcard iocBoot))
+
+#Tests uses dbUnitTests.h from base-3.15
+ifdef BASE_3_15
 DIRS := $(DIRS) $(filter-out $(DIRS), tests)
+tests_DEPEND_DIRS += $(filter %App,$(DIRS))
+endif
 
 define DIR_template
  $(1)_DEPEND_DIRS = configure
@@ -12,7 +17,7 @@ endef
 $(foreach dir, $(filter-out configure,$(DIRS)),$(eval $(call DIR_template,$(dir))))
 
 iocBoot_DEPEND_DIRS += $(filter %App,$(DIRS))
-tests_DEPEND_DIRS += $(filter %App,$(DIRS))
+
 
 include $(TOP)/configure/RULES_TOP
 
