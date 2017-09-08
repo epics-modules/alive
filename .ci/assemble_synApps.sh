@@ -92,6 +92,5 @@ EOF
       ;;
     esac
 fi
-fi
 
 echo "EPICS_BASE=$BASE_LOCATION" > $TRAVIS_BUILD_DIR/configure/RELEASE
