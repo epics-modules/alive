@@ -1,4 +1,4 @@
-[![Build Status](https://travis-ci.org/keenanlang/calc.svg?branch=master)](https://travis-ci.org/keenanlang/calc)
+[![Build Status](https://travis-ci.org/keenanlang/alive.svg?branch=master)](https://travis-ci.org/keenanlang/alive)
 
 # alive
 APS BCDA synApps module: alive
