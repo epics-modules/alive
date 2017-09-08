@@ -1,13 +1,16 @@
 #!/bin/bash
 shopt -s expand_aliases
 
+
+
+
 BASE_LOCATION=$HOME/.cache/base-$BASE
 
 
 if [ ! -e "base-$BASE" ] 
-then   get_repo
+then
 	if [ ! -e "$EPICS_BASE" ] 
-then   get_repo
+then
 	git clone --branch $BASE --depth 1 git://github.com/epics-base/epics-base.git base-$BASE
 	
 		EPICS_HOST_ARCH=`sh $EPICS_BASE/startup/EpicsHostArch`
@@ -37,7 +40,7 @@ EOF
 
     # requires wine and g++-mingw-w64-i686
     if [ "$WINE" = "32" ]
-    then   get_repo
+    then
       echo "Cross mingw32"
       sed -i -e '/CMPLR_PREFIX/d' $EPICS_BASE/configure/os/CONFIG_SITE.linux-x86.win32-x86-mingw
       cat << EOF >> $EPICS_BASE/configure/os/CONFIG_SITE.linux-x86.win32-x86-mingw
@@ -50,7 +53,7 @@ EOF
 
     # set RTEMS to eg. "4.9" or "4.10"
     if [ -n "$RTEMS" ]
-    then   get_repo
+    then
       echo "Cross RTEMS${RTEMS} for pc386"
       install -d /home/travis/.cache
       curl -L "https://github.com/mdavidsaver/rsb/releases/download/travis-20160306-2/rtems${RTEMS}-i386-trusty-20190306-2.tar.gz" \
