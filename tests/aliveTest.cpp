@@ -45,8 +45,6 @@ static void aliveTestCleanup(void* junk)
     pdbbase=0;
 
     db_close_events(evtctx);
-
-    dbmfFreeChunks();
 }
 }
 
