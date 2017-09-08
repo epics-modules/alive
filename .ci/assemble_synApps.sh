@@ -1,18 +1,13 @@
 #!/bin/bash
 shopt -s expand_aliases
 
+cd $HOME/.cache
 
+EPICS_BASE=$HOME/.cache/base-$BASE
 
-
-BASE_LOCATION=$HOME/.cache/base-$BASE
-
-
-if [ ! -e "base-$BASE" ] 
+if [ ! -e "$EPICS_BASE" ] 
 then
-	if [ ! -e "$EPICS_BASE" ] 
-then
-	git clone --branch $BASE --depth 1 git://github.com/epics-base/epics-base.git base-$BASE
-	
+git clone --branch $BASE --depth 1 git://github.com/epics-base/epics-base.git base-$BASE	
 		EPICS_HOST_ARCH=`sh $EPICS_BASE/startup/EpicsHostArch`
 
     case "$STATIC" in
