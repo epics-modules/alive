@@ -1,3 +1,5 @@
+[![Build Status](https://travis-ci.org/epics-modules/alive.svg?branch=master)](https://travis-ci.org/epics-modules/alive)
+
 # alive
 APS BCDA synApps module: alive
 
