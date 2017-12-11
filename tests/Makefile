@@ -25,6 +25,7 @@ TESTSPEC_vxWorks = aliveTestHarness.munch; runTests
 
 PROD_LIBS += alive
 PROD_LIBS += $(EPICS_BASE_IOC_LIBS)
+PROD_SYS_LIBS_WIN32 += ws2_32
 
 TESTSCRIPTS_HOST += $(TESTS:%=%.t)
 
