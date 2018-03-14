@@ -12,5 +12,4 @@ record(calcout, "$(P)aliveCalcMSG")
   field(CALC, "!A")
   field(OOPT, "On Change")
   field(OUT,  "$(P)alive.MSG PP NMS")
-  field(PINI, "Yes")
 }
