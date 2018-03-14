@@ -1,0 +1,16 @@
+# This is for setting the MSG field of the alive record with error bits.
+# The unsigned 32-bit MSG field is always sent to the daemon, and its use is
+# meant to be locally defined, but can be used for alerts.
+# Here, when MSG is non-zero, something has happened that needs attention,
+# depending on the set bit.
+
+record(calcout, "$(P)aliveCalcMSG")
+{
+  field(DESC, "calculates alive.MSG")
+  field(SCAN, "10 second")
+  field(INPA, "$(P)SR_deadIfZero PP NMS")
+  field(CALC, "!A")
+  field(OOPT, "On Change")
+  field(OUT,  "$(P)alive.MSG PP NMS")
+  field(PINI, "Yes")
+}
