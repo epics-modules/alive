@@ -60,7 +60,14 @@ content="text/html; charset=iso-8859-1">
     <p>This is not included directly in <i>alive.db</i> since the alive
       module might be deployed without the other <i>synApps</i> modules.
       It might also become locally customized.
-      
+
+    <p>There is an associated <i>aliveMSGCalc_local.req</i> file.  It
+      does not use the normal <i>_settings.req</i> convention (which
+      in recent synApps versions causes it to be automatically
+      loaded), as it's intended for manually overriding the global
+      defaults only if that is wanted.  Otherwise, changing the calculation
+      parameters would need to be done for every IOC instead of at the
+      master file location.
   </dd>
 </dl>
 
