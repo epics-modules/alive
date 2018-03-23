@@ -4,7 +4,7 @@
 # Here, when MSG is non-zero, something has happened that needs attention,
 # depending on the set bit.
 
-record(calcout, "$(P)aliveCalcMSG")
+record(calcout, "$(P)aliveMSGCalc")
 {
   field(DESC, "calculates alive.MSG")
   field(SCAN, "10 second")
