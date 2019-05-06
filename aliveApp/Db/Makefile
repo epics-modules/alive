@@ -13,6 +13,7 @@ include $(TOP)/configure/CONFIG
 DB += alive.db
 DB += aliveMSGCalc.db
 
+REQ += aliveMSGCalc_local.req
 #----------------------------------------------------
 # If <anyname>.db template is not named <anyname>*.template add
 # <anyname>_TEMPLATE = <templatename>
