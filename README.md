@@ -10,9 +10,3 @@ For more information, see
 [Request a feature](https://github.com/epics-modules/alive/issues/new?title=%20FEATURE%20SHORT%20DESCRIPTION&body=**Feature%20Long%20Description**%0A%0A**Why%20should%20this%20be%20added?**%0A&labels=enhancement)
 
 * [documentation](https://github.com/epics-modules/alive/blob/master/documentation/README.md)
-
-
-converted from APS SVN repository: Mon Oct 26 12:21:43 CDT 2015
-
-Regarding the license of tagged versions prior to synApps 4-5,
-refer to http://www.aps.anl.gov/bcda/synApps/license.php
