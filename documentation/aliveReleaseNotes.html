@@ -9,31 +9,56 @@ content="text/html; charset=iso-8859-1">
 
 <h1 align="center">alive Release Notes</h1>
 
+<h2 align="center">Pending Changes</h2>
+
+<p>
+  Changed the name of the ENVxx fields to EVxx.
+</p>
+<p>
+  Added 16 EVDxx fields, similar to EVxx fields, which are default
+  environment variables that are unchangeable after boot.
+</p>
+  
+<h2 align="center">Release 1-1-1</h2>
+
+<p>
+  Minor configuration file changes.
+</p>
+
 <h2 align="center">Release 1-1-0</h2>
 
-<p>Added a field IOCNM which shows the IOC name that is sent to the
-remote server.  If this value is set directly, then this is the value
-used, otherwise it is found using the NMVAR field.</p>
-
-<p>Added a field NMVAR to define the environment variable that defines
-the IOC's name, with it defaulting to IOC.</p>
-
-<p>Added a new database, <i>aliveMSGCalc.db</i>, which creates a calcout
-that writes into alive record's <b>MSG</b> field automatically, based on 
-available synApps error messages.  Currently, it is only using an autosave 
-error PV as input.
+<p>
+  Added a field IOCNM which shows the IOC name that is sent to the
+  remote server.  If this value is set directly, then this is the
+  value used, otherwise it is found using the NMVAR field.
+</p>
+<p>
+  Added a field NMVAR to define the environment variable that defines
+  the IOC's name, with it defaulting to IOC.
+</p>
+<p>
+  Added a new database, <i>aliveMSGCalc.db</i>, which creates a
+  calcout that writes into alive record's <b>MSG</b> field
+  automatically, based on available synApps error messages.
+  Currently, it is only using an autosave error PV as input.
+</p>
 
 <h2 align="center">Release 1-0-1</h2>
 
-<p>Changed number of ENVxx PV fields from 10 to 16.</p>
-
-<p>Windows build fixes from other BCDA staff added.</p>
+<p>
+  Changed number of ENVxx PV fields from 10 to 16.
+</p>
+<p>
+  Windows build fixes from other BCDA staff added.
+</p>
 
 <h2 align="center">Release 1-0-0</h2>
 
-<p>This is the first release of the synApps alive module.  It was
-developed using EPICS base 3.14.12, but earlier 3.14 releases should
-probably work.</p>
+<p>
+  This is the first release of the synApps alive module.  It was
+  developed using EPICS base 3.14.12, but earlier 3.14 releases should
+  probably work.
+</p>
 
 <address> 
     Dohn Arms<br>

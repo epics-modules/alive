@@ -16,13 +16,17 @@ content="text/html; charset=iso-8859-1">
 
 <dl>
   <dt><a href="aliveRecord.html">aliveRecord.html</a></dt>
-  <dd>The <b>alive</b> record is used for determining where the
-    heartbeat information is sent, as well as the extra environment
-    variables that may be requested remotely.</dd>
+  <dd>
+    The <strong>alive</strong> record is used for determining where
+    the heartbeat information is sent, as well as the extra
+    environment variables that may be requested remotely.
+  </dd>
   <dt><a href="aliveServer.html">aliveServer.html</a></dt>
-  <dd>This describes how one can implement a server for receiving and
+  <dd>
+    This describes how one can implement a server for receiving and
     processing the heartbeat meassages, as well as making inquiries to the
-    alive record about the extra information.</dd>
+    alive record about the extra information.
+  </dd>
 </dl>
 
 <h2>EPICS Database</h2>
@@ -30,44 +34,55 @@ content="text/html; charset=iso-8859-1">
 <dl>
   <dt>alive.db</dt>
   <dd>
-    <p>This database is basically a straight implementation of the alive
-      record itself.  It creates a record of the name "$(P)alive".
-
-    <p>The name of the IOC sent back to the server is by default the value
-      of the "IOC" environment variable, but the variable that is used can
-      be changed by setting "$(NMVAR)" to a new value.
-  
-    <p>The <strong>RHOST</strong> is defined using "$(RHOST)".  The rest of
-      the fields that can be specified have defaults in them that can be
-      overridden.  The default for "$(RPORT)" is "5678", and for "$(HPRD)"
-      is "15".  If multiple IOC are to run on the same computer, then
-      "$(IPORT)" for each IOC should have a different value, or all
-      "$(IPORT)" values should be set to zero to allow the system to
-      determine it.  Only the first seven of the sixteen environment variable
-      fields, "$(ENV1)" to "$(ENV16)", have defaults, being "ARCH", "TOP",
-      "EPICS_BASE", "SUPPORT", "ENGINEER", "LOCATION", and "GROUP".
+    <p>
+      This database is basically a straight implementation of the
+      alive record itself.  It creates a record of the name
+      "$(P)alive".
+    </p>
+    <p>
+      The name of the IOC sent back to the server is by default the
+      value of the "IOC" environment variable, but the variable that
+      is used can be changed by setting "$(NMVAR)" to a new value.
+    </p>
+    <p>
+      The <strong>RHOST</strong> is defined using "$(RHOST)".  The
+      rest of the fields that can be specified have defaults in them
+      that can be overridden.  The default for "$(RPORT)" is "5678",
+      and for "$(HPRD)" is "15".  If multiple IOC are to run on the
+      same computer, then "$(IPORT)" for each IOC should have a
+      different value, or all "$(IPORT)" values should be set to zero
+      to allow the system to determine it.  Only the first seven of
+      the sixteen default environment variable fields, "$(END1)" to
+      "$(END16)", have values, being "ARCH", "TOP", "EPICS_BASE",
+      "SUPPORT", "ENGINEER", "LOCATION", and "GROUP".
+      </p>
   </dd>
   <dt>aliveMSGCalc.db</dt>
   <dd>
-    <p>This database consists of a calcout record that will
-      periodically set the <b>MSG</b> value of the IOC's alive record,
-      based on status PV values of other <i>synApps</i> modules.
-      The <b>MSG</b> usage is undefined, but was intended for sending
-      warnings if something bad happens, as a sequence of error
-      bits. Currently, only the status of the autosave is being used.
-      If the first bit of the <b>MSG</b> is set, then autosave is dead.
-
-    <p>This is not included directly in <i>alive.db</i> since the alive
-      module might be deployed without the other <i>synApps</i> modules.
-      It might also become locally customized.
-
-    <p>There is an associated <i>aliveMSGCalc_local.req</i> file.  It
+    <p>
+      This database consists of a calcout record that will
+      periodically set the <strong>MSG</strong> value of the IOC's
+      alive record, based on status PV values of other <i>synApps</i>
+      modules.  The <strong>MSG</strong> usage is undefined, but was
+      intended for sending warnings if something bad happens, as a
+      sequence of error bits. Currently, only the status of the
+      autosave is being used.  If the first bit of
+      the <strong>MSG</strong> is set, then autosave is dead.
+    </p>
+    <p>
+      This is not included directly in <i>alive.db</i> since the alive
+      module might be deployed without the other <i>synApps</i>
+      modules.  It might also become locally customized.
+    </p>
+    <p>
+      There is an associated <i>aliveMSGCalc_local.req</i> file.  It
       does not use the normal <i>_settings.req</i> convention (which
       in recent synApps versions causes it to be automatically
       loaded), as it's intended for manually overriding the global
-      defaults only if that is wanted.  Otherwise, changing the calculation
-      parameters would need to be done for every IOC instead of at the
-      master file location.
+      defaults only if that is wanted.  Otherwise, changing the
+      calculation parameters would need to be done for every IOC
+      instead of at the master file location.
+    </p>
   </dd>
 </dl>
 
@@ -77,37 +92,58 @@ content="text/html; charset=iso-8859-1">
 
 <dl>
   <dt>aliveRecord.adl</dt>
-  <dd><p>This is the medm ADL file for an alive record.  All the fields are
-    exposed on this screen.</dd>
+  <dd>
+    <p>
+      This is the medm ADL file for an alive record.  All the fields are
+      exposed on this screen.
+    </p>
+  </dd>
 </dl>
 
 <h2>How to build and use</h2>
 
 <ul>
-  <li>Edit <code>configure/RELEASE</code> to specify the paths to <b>EPICS
-      base</b>.  There are no dependencies on any other modules.</li>
-  <li>Run Gnu Make to build.</li>
-  <li>Note that the <em>alive</em> module is not useful on its own, as it needs
-    a remote server to send heartbeat information.</li>
+  <li>
+    Edit <code>configure/RELEASE</code> to specify the paths
+    to <strong>EPICS base</strong>.  There are no dependencies on
+    any other modules.
+  </li>
+  <li>
+    Run Gnu Make to build.
+  </li>
+  <li>
+    Note that the <em>alive</em> module is not useful on its own, as
+    it needs a remote server to send heartbeat information.
+  </li>
 </ul>
 
 <h2>Checking to see if record works</h2>
 
 <ul>
-
-<li>Configure an alive record to talk to a remote server daemon that understands how to talk to this type of record.</li>
-<li>Make sure that IPSTS gets set to "Operable", otherwise the
-information port is not working.</li>
-<li>Make sure that the HRTBT field is set to "On" (the default).</li>
-<li>Make sure that the ISUP field is set to "Off" (the default).</li>
-<li>Set ITRIG field to "Trigger".  If ITRIG goes back to being "Idle",
-then the remote daemon has read the boot information, meaning the
-record is successfully talking to the daemon.</li>
+  <li>
+    Configure an alive record to talk to a remote server daemon that
+    understands how to talk to this type of record.
+  </li>
+  <li>
+    Make sure that IPSTS gets set to "Operable", otherwise the
+    information port is not working.
+  </li>
+  <li>
+    Make sure that the HRTBT field is set to "On" (the default).
+  </li>
+  <li>
+    Make sure that the ISUP field is set to "Off" (the default).
+  </li>
+  <li>
+    Set ITRIG field to "Trigger".  If ITRIG goes back to being "Idle",
+    then the remote daemon has read the boot information, meaning the
+    record is successfully talking to the daemon.
+  </li>
 </ul>
 
 <address> 
-    Dohn Arms<br>
-    Advanced Photon Source
+  Dohn Arms<br>
+  Advanced Photon Source
 </address>
 </body>
 </html>

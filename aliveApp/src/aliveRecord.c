@@ -62,8 +62,9 @@
 
 
 #define ALIVE_VERSION (1)
-#define ALIVE_REVISION (1)
+#define ALIVE_REVISION (2)
 #define ALIVE_MODIFICATION (0)
+#define ALIVE_DEV_STATUS "-dev1"
 
 #define PROTOCOL_VERSION (5)
 
@@ -131,8 +132,14 @@ struct rpvtStruct
   
   // 40 character limit enforced by EPICS string type
   // otherwise, can be very big
+  char envdef[ENV_CNT][41];
   char env[ENV_CNT][41];
 
+  // this can be set to static, as default values can't change
+  int envdef_len[ENV_CNT][2]; 
+  int envdef_count;
+  int envdef_msglen;
+  
   epicsThreadId listen_thread;
   epicsThreadId send_thread;
 
@@ -385,6 +392,10 @@ void *ioc_alive_listen(void *data)
           machine = NULL;
       }
 #endif
+
+      number += prpvt->envdef_count;
+      length += prpvt->envdef_msglen;
+
       for( i = 0; i < ENV_CNT; i++)
         {
           if( prpvt->env[i][0] == '\0')
@@ -408,7 +419,7 @@ void *ioc_alive_listen(void *data)
                 }
             }
         }
-
+      
       /* printf("%d\n", length); fflush(stdout); */
 
       msg32 = htonl( length);
@@ -416,6 +427,22 @@ void *ioc_alive_listen(void *data)
       msg16 = htons( number);
       send( client_sockfd, (void *) &msg16, sizeof(uint16_t), 0);
 
+      for( i = 0; i < ENV_CNT; i++)
+        {
+          if( prpvt->envdef_len[i][0] == 0)
+            continue;
+
+          len8 = prpvt->envdef_len[i][0];
+          send( client_sockfd, (void *) &len8, sizeof(uint8_t), 0);
+          send( client_sockfd, prpvt->envdef[i], len8, 0);
+
+          q = getenv(prpvt->envdef[i]);
+          len16 = prpvt->envdef_len[i][1];
+          msg16 = htons( len16);
+          send( client_sockfd, (void *) &msg16, sizeof(uint16_t), 0);
+          if( len16)
+            send( client_sockfd, q, len16, 0);
+        }
       for( i = 0; i < ENV_CNT; i++)
         {
           if( env_len[i][0] == 0)
@@ -638,8 +665,8 @@ static long init_record(void *precord, int pass)
 
   prec->val = 0;
   
-  sprintf( prec->ver, "%d-%d-%d", ALIVE_VERSION, ALIVE_REVISION,
-           ALIVE_MODIFICATION );
+  sprintf( prec->ver, "%d-%d-%d%s", ALIVE_VERSION, ALIVE_REVISION,
+           ALIVE_MODIFICATION, ALIVE_DEV_STATUS );
 
   prpvt = prec->rpvt;
 
@@ -657,11 +684,45 @@ static long init_record(void *precord, int pass)
 
   epicsTimeGetCurrent(&start_time);
   prpvt->incarnation = (uint32_t) start_time.secPastEpoch;
+
+  prpvt->envdef_count = 0;
+  prpvt->envdef_msglen = 0;
+  for( i = 0; i < ENV_CNT; i++)
+    {
+      flag = sscanf( *(&prec->evd1 + i), "%s", prpvt->envdef[i]);
+      if( flag != 1)
+        {
+          prpvt->envdef[i][0] = '\0';
+          prpvt->envdef_len[i][0] = 0;
+        }
+      else
+        {
+          char *q;
+          
+          prpvt->envdef_count++;
+          prpvt->envdef_msglen += 3; // 8-bit key & 16-bit value string lengths
+          prpvt->envdef_len[i][0] = strlen(prpvt->envdef[i]);
+          prpvt->envdef_msglen += prpvt->envdef_len[i][0];
+          q = getenv(prpvt->envdef[i]);
+          if( q == NULL)
+            prpvt->envdef_len[i][1] = 0;
+          else
+            {
+              prpvt->envdef_len[i][1] = strlen(q);
+              // if size is greater that 16-bit max, truncate to zero
+              if( prpvt->envdef_len[i][1] > 65535)
+                prpvt->envdef_len[i][1] = 0;
+              prpvt->envdef_msglen += prpvt->envdef_len[i][1];
+            }
+        }
+    }
+
+
   
   for( i = 0; i < ENV_CNT; i++)
     {
-      flag = sscanf( *(&prec->env1 + i), "%s", prpvt->env[i]);
-      if( !flag)
+      flag = sscanf( *(&prec->ev1 + i), "%s", prpvt->env[i]);
+      if( flag != 1)
         prpvt->env[i][0] = '\0';
     }
 
@@ -690,18 +751,9 @@ static long init_record(void *precord, int pass)
 #endif
     prpvt->ready_flag = 1;
 
-  p = prec->iocnm;
-  while(*p != '\0')
+  flag = sscanf( prec->iocnm, "%s", prpvt->ioc_name);
+  if( flag == 1)
     {
-      if( (*p != ' ') && (*p != '\t'))
-        break;
-      p++;
-    }
-  if( *p != '\0')
-    {
-      strncpy(prpvt->ioc_name, p, 39);
-      prpvt->ioc_name[39] = '\0';
-
       strcpy( prec->nmvar, "----");
     }
   else
@@ -709,16 +761,18 @@ static long init_record(void *precord, int pass)
       p = getenv(prec->nmvar);
       if( p == NULL)
         {
-          errlogSevPrintf( errlogFatal, "%s", "alive record: "
-                           "Won't start, can't get IOC name environment variable.\n");
+          errlogSevPrintf( errlogFatal, "%s%s%s", 
+                           "alive record: Won't start, can't get ",
+                           prec->nmvar," name environment variable.\n");
           prpvt->fault_flag = 1;
           return 1;
         }
       // condition is sanity check, as the output buffer is static
       if( strlen( p) > 39)
         {
-          errlogSevPrintf( errlogFatal, "%s", "alive record: "
-                           "Won't start, environment variable IOC too long.\n");
+          errlogSevPrintf( errlogFatal, "%s%s%s", 
+                           "alive record: Won't start, environment variable ",
+                           prec->nmvar, " too long.\n");
           prpvt->fault_flag = 1;
           return 1;
         }
@@ -799,24 +853,24 @@ static long special(DBADDR *paddr, int after)
     case(aliveRecordITRIG):
       // falls through to trigger reread
       break;
-    case(aliveRecordENV1):
-    case(aliveRecordENV2):
-    case(aliveRecordENV3):
-    case(aliveRecordENV4):
-    case(aliveRecordENV5):
-    case(aliveRecordENV6):
-    case(aliveRecordENV7):
-    case(aliveRecordENV8):
-    case(aliveRecordENV9):
-    case(aliveRecordENV10):
-    case(aliveRecordENV11):
-    case(aliveRecordENV12):
-    case(aliveRecordENV13):
-    case(aliveRecordENV14):
-    case(aliveRecordENV15):
-    case(aliveRecordENV16):
-      relIndex = fieldIndex - aliveRecordENV1;
-      f = sscanf( *(&prec->env1 + relIndex), "%s", prpvt->env[relIndex]);
+    case(aliveRecordEV1):
+    case(aliveRecordEV2):
+    case(aliveRecordEV3):
+    case(aliveRecordEV4):
+    case(aliveRecordEV5):
+    case(aliveRecordEV6):
+    case(aliveRecordEV7):
+    case(aliveRecordEV8):
+    case(aliveRecordEV9):
+    case(aliveRecordEV10):
+    case(aliveRecordEV11):
+    case(aliveRecordEV12):
+    case(aliveRecordEV13):
+    case(aliveRecordEV14):
+    case(aliveRecordEV15):
+    case(aliveRecordEV16):
+      relIndex = fieldIndex - aliveRecordEV1;
+      f = sscanf( *(&prec->ev1 + relIndex), "%s", prpvt->env[relIndex]);
       if( !f)
         prpvt->env[relIndex][0] = '\0';
       break;
