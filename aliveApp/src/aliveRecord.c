@@ -135,11 +135,6 @@ struct rpvtStruct
   char envdef[ENV_CNT][41];
   char env[ENV_CNT][41];
 
-  // this can be set to static, as default values can't change
-  int envdef_len[ENV_CNT][2]; 
-  int envdef_count;
-  int envdef_msglen;
-  
   epicsThreadId listen_thread;
   epicsThreadId send_thread;
 
@@ -178,6 +173,7 @@ void *ioc_alive_listen(void *data)
   
   // key and value lengths, key length of zero means it doesn't exist
   int env_len[ENV_CNT][2]; 
+  int envdef_len[ENV_CNT][2]; 
 
   uint32_t msg32;
   uint16_t msg16, len16;
@@ -393,9 +389,29 @@ void *ioc_alive_listen(void *data)
       }
 #endif
 
-      number += prpvt->envdef_count;
-      length += prpvt->envdef_msglen;
-
+      for( i = 0; i < ENV_CNT; i++)
+        {
+          if( prpvt->envdef[i][0] == '\0')
+            envdef_len[i][0] = 0;
+          else
+            {
+              number++;
+              length += 3; // 8-bit key & 16-bit value string lengths
+              envdef_len[i][0] = strlen(prpvt->envdef[i]);
+              length += envdef_len[i][0];
+              q = getenv(prpvt->envdef[i]);
+              if( q == NULL)
+                envdef_len[i][1] = 0;
+              else
+                {
+                  envdef_len[i][1] = strlen(q);
+                  // if size is greater that 16-bit max, truncate to zero
+                  if( envdef_len[i][1] > 65535)
+                    envdef_len[i][1] = 0;
+                  length += envdef_len[i][1];
+                }
+            }
+        }
       for( i = 0; i < ENV_CNT; i++)
         {
           if( prpvt->env[i][0] == '\0')
@@ -429,15 +445,15 @@ void *ioc_alive_listen(void *data)
 
       for( i = 0; i < ENV_CNT; i++)
         {
-          if( prpvt->envdef_len[i][0] == 0)
+          if( envdef_len[i][0] == 0)
             continue;
 
-          len8 = prpvt->envdef_len[i][0];
+          len8 = envdef_len[i][0];
           send( client_sockfd, (void *) &len8, sizeof(uint8_t), 0);
           send( client_sockfd, prpvt->envdef[i], len8, 0);
 
           q = getenv(prpvt->envdef[i]);
-          len16 = prpvt->envdef_len[i][1];
+          len16 = envdef_len[i][1];
           msg16 = htons( len16);
           send( client_sockfd, (void *) &msg16, sizeof(uint16_t), 0);
           if( len16)
@@ -685,40 +701,12 @@ static long init_record(void *precord, int pass)
   epicsTimeGetCurrent(&start_time);
   prpvt->incarnation = (uint32_t) start_time.secPastEpoch;
 
-  prpvt->envdef_count = 0;
-  prpvt->envdef_msglen = 0;
   for( i = 0; i < ENV_CNT; i++)
     {
       flag = sscanf( *(&prec->evd1 + i), "%s", prpvt->envdef[i]);
       if( flag != 1)
-        {
-          prpvt->envdef[i][0] = '\0';
-          prpvt->envdef_len[i][0] = 0;
-        }
-      else
-        {
-          char *q;
-          
-          prpvt->envdef_count++;
-          prpvt->envdef_msglen += 3; // 8-bit key & 16-bit value string lengths
-          prpvt->envdef_len[i][0] = strlen(prpvt->envdef[i]);
-          prpvt->envdef_msglen += prpvt->envdef_len[i][0];
-          q = getenv(prpvt->envdef[i]);
-          if( q == NULL)
-            prpvt->envdef_len[i][1] = 0;
-          else
-            {
-              prpvt->envdef_len[i][1] = strlen(q);
-              // if size is greater that 16-bit max, truncate to zero
-              if( prpvt->envdef_len[i][1] > 65535)
-                prpvt->envdef_len[i][1] = 0;
-              prpvt->envdef_msglen += prpvt->envdef_len[i][1];
-            }
-        }
+        prpvt->envdef[i][0] = '\0';
     }
-
-
-  
   for( i = 0; i < ENV_CNT; i++)
     {
       flag = sscanf( *(&prec->ev1 + i), "%s", prpvt->env[i]);
