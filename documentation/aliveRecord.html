@@ -86,8 +86,9 @@
 <p>
   The heartbeat UDP packets are sent to a remote server using
   the <strong>RHOST</strong> and <strong>RPORT</strong> fields to
-  specify address and port. The <strong>RHOST</strong> needs to be the
-  IPv4 numeric address, and not a name.
+  specify address and port. The <strong>RHOST</strong> can be a name
+  or an IPv4 numeric address, and the corresponding IPv4 address is
+  displayed in the <strong>RADDR</strong> field.
 </p>
 <p>
   The IOC's actual name as reported to the remote server
@@ -181,13 +182,25 @@
 
   <tr>
     <td>RHOST</td>
-    <td>Remote Host IP Address</td>
+    <td>Remote Host Name or IP Address</td>
     <td>STRING</td>
     <td>Yes</td>
     <td>&nbsp;</td>
     <td>Yes</td>
     <td>Yes</td>
     <td>Yes</td>
+    <td>No</td>
+  </tr>
+
+    <tr>
+    <td>RADDR</td>
+    <td>Remote Host IP Address</td>
+    <td>STRING</td>
+    <td>Yes</td>
+    <td>&nbsp;</td>
+    <td>Yes</td>
+    <td>No</td>
+    <td>No</td>
     <td>No</td>
   </tr>
 

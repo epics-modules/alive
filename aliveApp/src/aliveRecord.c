@@ -64,7 +64,7 @@
 #define ALIVE_VERSION (1)
 #define ALIVE_REVISION (2)
 #define ALIVE_MODIFICATION (0)
-#define ALIVE_DEV_STATUS "-dev1"
+#define ALIVE_DEV_STATUS "-dev2"
 
 #define PROTOCOL_VERSION (5)
 
@@ -722,6 +722,8 @@ static long init_record(void *precord, int pass)
       prpvt->fault_flag = 1;
       return 1;
     }
+
+  
 #ifdef vxWorks
   bzero( (void *) &(prpvt->h_addr), sizeof(struct sockaddr_in) );
 #else
@@ -729,16 +731,12 @@ static long init_record(void *precord, int pass)
 #endif
   prpvt->h_addr.sin_family = AF_INET;
   prpvt->h_addr.sin_port = htons(prec->rport);
-#if defined (vxWorks)
-  prpvt->h_addr.sin_len = (u_char) sizeof (struct sockaddr_in); 
-  if( (prpvt->h_addr.sin_addr.s_addr = inet_addr (prec->rhost)) != ERROR)
-#elif defined (_WIN32)
-  if ((prpvt->h_addr.sin_addr.s_addr = inet_addr(prec->rhost)) != INADDR_NONE)
-#else
-  if( inet_aton( prec->rhost, &(prpvt->h_addr.sin_addr)) )
-#endif
-    prpvt->ready_flag = 1;
-
+  if(!hostToIPAddr(prec->rhost, &(prpvt->h_addr.sin_addr) ) )
+    {
+      prpvt->ready_flag = 1;
+      strcpy( prec->raddr, inet_ntoa( prpvt->h_addr.sin_addr) );
+    }
+  
   flag = sscanf( prec->iocnm, "%s", prpvt->ioc_name);
   if( flag == 1)
     {
@@ -818,16 +816,16 @@ static long special(DBADDR *paddr, int after)
   switch(fieldIndex) 
     {
     case(aliveRecordRHOST):
-#if defined (vxWorks)
-      if( (prpvt->h_addr.sin_addr.s_addr = inet_addr (prec->rhost)) == ERROR)
-#elif defined (_WIN32)
-      if( (prpvt->h_addr.sin_addr.s_addr = inet_addr(prec->rhost)) == INADDR_NONE)
-#else
-      if( !inet_aton( prec->rhost, &(prpvt->h_addr.sin_addr)) )
-#endif
-        prpvt->ready_flag = 0;
+      if(!hostToIPAddr(prec->rhost, &(prpvt->h_addr.sin_addr) ) )
+        {
+          prpvt->ready_flag = 1;
+          strcpy( prec->raddr, inet_ntoa( prpvt->h_addr.sin_addr) );
+        }
       else
-        prpvt->ready_flag = 1;
+        {
+          prpvt->ready_flag = 0;
+          prec->raddr[0] = '\0';
+        }
       break;
     case(aliveRecordRPORT):
       prpvt->h_addr.sin_port = htons(prec->rport);

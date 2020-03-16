@@ -27,6 +27,12 @@ recordtype(alive) {
                 size(40)
                 initial("")
         }
+        field(RADDR,DBF_STRING) {
+                prompt("Remote IP Address")
+                special(SPC_NOMOD)
+                size(20)
+                initial("")
+        }
         field(RPORT,DBF_USHORT) {
                 prompt("Remote port")
                 special(SPC_MOD)

@@ -1,12 +1,12 @@
 
 file {
-	name="/home/beams/DOHNARMS/epicsdev/software/alive/aliveRec/aliveApp/op/adl/aliveRecord.adl"
+	name="/home/beams4/DOHNARMS/epicsdev/software/alive/aliveRec/aliveApp/op/adl/aliveRecord.adl"
 	version=030111
 }
 display {
 	object {
-		x=440
-		y=58
+		x=431
+		y=50
 		width=340
 		height=380
 	}
@@ -245,8 +245,8 @@ text {
 }
 "text entry" {
 	object {
-		x=95
-		y=125
+		x=210
+		y=95
 		width=120
 		height=20
 	}
@@ -260,15 +260,15 @@ text {
 }
 text {
 	object {
-		x=10
-		y=125
-		width=80
+		x=165
+		y=95
+		width=40
 		height=18
 	}
 	"basic attribute" {
 		clr=14
 	}
-	textix="IP Address"
+	textix="Host"
 	align="horiz. right"
 }
 "text entry" {
@@ -301,7 +301,7 @@ text {
 }
 text {
 	object {
-		x=95
+		x=20
 		y=95
 		width=120
 		height=20
@@ -622,4 +622,33 @@ text {
 	clr=14
 	bclr=61
 	label="-Environment Variables"
+}
+"text update" {
+	object {
+		x=95
+		y=125
+		width=120
+		height=20
+	}
+	monitor {
+		chan="$(P)alive.RADDR"
+		clr=14
+		bclr=55
+	}
+	align="horiz. centered"
+	limits {
+	}
+}
+text {
+	object {
+		x=10
+		y=125
+		width=80
+		height=18
+	}
+	"basic attribute" {
+		clr=14
+	}
+	textix="IP Address"
+	align="horiz. right"
 }
