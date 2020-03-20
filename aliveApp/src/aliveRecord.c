@@ -64,50 +64,50 @@
 #define ALIVE_VERSION (1)
 #define ALIVE_REVISION (2)
 #define ALIVE_MODIFICATION (0)
-#define ALIVE_DEV_STATUS "-dev2"
+#define ALIVE_DEV_STATUS (3)
 
 #define PROTOCOL_VERSION (5)
 
 
 /* Create RSET - Record Support Entry Table */
-#define report NULL
-#define initialize NULL
+#define Report NULL
+#define Initialize NULL
 static long init_record();
 static long process();
 static long special();
-#define get_value NULL
-#define cvt_dbaddr NULL
-#define get_array_info NULL
-#define put_array_info NULL
-#define get_units NULL
-#define get_precision NULL
-#define get_enum_str NULL
-#define get_enum_strs NULL
-#define put_enum_str NULL
-#define get_graphic_double NULL
-#define get_control_double NULL
-#define get_alarm_double NULL
+#define Get_value NULL
+#define Cvt_dbaddr NULL
+#define Get_array_info NULL
+#define Put_array_info NULL
+#define Get_units NULL
+#define Get_precision NULL
+#define Get_enum_str NULL
+#define Get_enum_strs NULL
+#define Put_enum_str NULL
+#define Get_graphic_double NULL
+#define Get_control_double NULL
+#define Get_alarm_double NULL
  
 rset aliveRSET =
   {
     RSETNUMBER,
-    report,
-    initialize,
+    Report,
+    Initialize,
     init_record,
     process,
     special,
-    get_value,
-    cvt_dbaddr,
-    get_array_info,
-    put_array_info,
-    get_units,
-    get_precision,
-    get_enum_str,
-    get_enum_strs,
-    put_enum_str,
-    get_graphic_double,
-    get_control_double,
-    get_alarm_double
+    Get_value,
+    Cvt_dbaddr,
+    Get_array_info,
+    Put_array_info,
+    Get_units,
+    Get_precision,
+    Get_enum_str,
+    Get_enum_strs,
+    Put_enum_str,
+    Get_graphic_double,
+    Get_control_double,
+    Get_alarm_double
   };
 epicsExportAddress(rset,aliveRSET);
 
@@ -142,18 +142,67 @@ struct rpvtStruct
   struct sockaddr_in h_addr;
 };
 
-
-#ifdef vxWorks
-static void bootparam_send( SOCKET sock, char *string)
+// REDO sender to have 5 second timeout and select()
+int sender( SOCKET sock, void *data, int size)
 {
-  uint8_t len8;
-
-  len8 = strlen( string);
-  send( sock, (void *) &len8, sizeof(uint8_t), 0);
-  if( len8)
-    send( sock, string, len8, 0);
+  int i, cnt;
+  cnt = 0;
+  while( cnt < size)
+    {
+      i = send( sock, data+cnt, size-cnt, 0);
+      if( i < 0)
+        return errno;
+      cnt += i;
+    }
+  return 0;
 }
-#endif
+
+// these functions assume that the buffer length has been
+// computed correctly, which is needed for header as well
+char *buffer_adder_8( char *bptr, uint8_t value)
+{
+  *((uint8_t *) bptr) = value;
+  return bptr + 1;
+}
+char *buffer_adder_16( char *bptr, uint16_t value)
+{
+  *((uint16_t *) bptr) = htons(value);
+  return bptr + 2;
+}
+char *buffer_adder_32( char *bptr, uint32_t value)
+{
+  *((uint32_t *) bptr) = htonl(value);
+  return bptr + 4;
+}
+char *buffer_adder_8string( char *bptr, char *string, uint8_t length)
+{
+  *((uint8_t *) bptr) = length;
+  memcpy( (bptr + 1), string, length);
+  return bptr + 1 + length;
+}
+char *buffer_adder_16string( char *bptr, char *string, uint16_t length)
+{
+  *((uint16_t *) bptr) = htons(length);
+  memcpy( (bptr + 2), string, length);
+  return bptr + 2 + length;
+}
+char *buffer_adder_8string_nullcheck( char *bptr, char *string)
+{
+  if( string == NULL)
+    {
+      *((uint8_t *) bptr) = 0;
+      return bptr + 1;
+    }
+  else
+    {
+      int len;
+  
+      len = strlen(string);
+      *((uint8_t *) bptr) = len;
+      memcpy( (bptr + 1), string, len);
+      return bptr + 1 + len;
+    }
+}
 
 void *ioc_alive_listen(void *data)
 {
@@ -175,14 +224,15 @@ void *ioc_alive_listen(void *data)
   int env_len[ENV_CNT][2]; 
   int envdef_len[ENV_CNT][2]; 
 
-  uint32_t msg32;
-  uint16_t msg16, len16;
-  uint8_t  len8;
-
-  int length;
-  int number;
+  // IOC type
   int type;
-
+  // number of environment variables with non-empty strings
+  int ev_number;
+  // length of data to send, to allow other end to preallocate memory
+  int buffer_length;
+  // buffer used for sending message
+  char *send_buffer;
+  
 #if defined (vxWorks)
   BOOT_PARAMS bootparams;
 #endif
@@ -200,7 +250,9 @@ void *ioc_alive_listen(void *data)
 #endif
 
   int i;
-
+  int ret;
+  char *sptr;
+  
   prpvt = prec->rpvt;
 
 #if defined (vxWorks)
@@ -286,41 +338,37 @@ void *ioc_alive_listen(void *data)
 
       // fault flag can't happen, but just in case
       if( prec->isup || prpvt->fault_flag || !prpvt->ready_flag || 
-          ( ((struct sockaddr_in *)&r_addr)->sin_addr.s_addr != prpvt->h_addr.sin_addr.s_addr) )
+          ( ((struct sockaddr_in *)&r_addr)->sin_addr.s_addr !=
+            prpvt->h_addr.sin_addr.s_addr) )
         {
           epicsSocketDestroy(client_sockfd);
           continue;
         }
 
-      // TCP protocol version
-      msg16 = htons(PROTOCOL_VERSION);
-      send( client_sockfd, (void *) &msg16, sizeof(uint16_t), 0);
-
-      // IOC type, currently 1 = vxworks, 2 = linux, 3 = darwin
-      msg16 = htons(type);
-      send( client_sockfd, (void *) &msg16, sizeof(uint16_t), 0);
-
-      number = 0;
-      length = 10;  // from version + type + number + length
+      // type and buffer_length should swap positions in the next protocol
+      
+      ev_number = 0;
+      buffer_length = 10;  // from version + type + buffer_length + ev_number
 #if defined (vxWorks)
       memset( &bootparams, 0, sizeof( BOOT_PARAMS) );
       bootStringToStruct( sysBootLine, &bootparams);
       // don't check to see if it returns EOS, as it's zeroed out
 
-      length += 12; // bootparams.unitNum, bootparams.procNum, bootparams.flags
-      length += 12; // 8-bit lengths below
-      length += ((uint8_t) strlen(bootparams.bootDev) );
-      length += ((uint8_t) strlen(bootparams.hostName) );
-      length += ((uint8_t) strlen(bootparams.bootFile) );
-      length += ((uint8_t) strlen(bootparams.ead) );
-      length += ((uint8_t) strlen(bootparams.bad) );
-      length += ((uint8_t) strlen(bootparams.had) );
-      length += ((uint8_t) strlen(bootparams.gad) );
-      length += ((uint8_t) strlen(bootparams.usr) );
-      length += ((uint8_t) strlen(bootparams.passwd) );
-      length += ((uint8_t) strlen(bootparams.targetName) );
-      length += ((uint8_t) strlen(bootparams.startupScript) );
-      length += ((uint8_t) strlen(bootparams.other) );
+      // bootparams.unitNum, bootparams.procNum, bootparams.flags
+      buffer_length += 12; 
+      buffer_length += 12; // 8-bit lengths below
+      buffer_length += ((uint8_t) strlen(bootparams.bootDev) );
+      buffer_length += ((uint8_t) strlen(bootparams.hostName) );
+      buffer_length += ((uint8_t) strlen(bootparams.bootFile) );
+      buffer_length += ((uint8_t) strlen(bootparams.ead) );
+      buffer_length += ((uint8_t) strlen(bootparams.bad) );
+      buffer_length += ((uint8_t) strlen(bootparams.had) );
+      buffer_length += ((uint8_t) strlen(bootparams.gad) );
+      buffer_length += ((uint8_t) strlen(bootparams.usr) );
+      buffer_length += ((uint8_t) strlen(bootparams.passwd) );
+      buffer_length += ((uint8_t) strlen(bootparams.targetName) );
+      buffer_length += ((uint8_t) strlen(bootparams.startupScript) );
+      buffer_length += ((uint8_t) strlen(bootparams.other) );
 #endif
 #if defined (linux) || defined (darwin)
       {
@@ -353,27 +401,27 @@ void *ioc_alive_listen(void *data)
       }
 
       //      flag == 2 or 3
-      length += 1; // 8-bit string length
+      buffer_length += 1; // 8-bit string length
       if( user != NULL)
-        length += ((uint8_t) strlen(user) );
-      length += 1; // 8-bit string length
+        buffer_length += ((uint8_t) strlen(user) );
+      buffer_length += 1; // 8-bit string length
       if( group != NULL)
-        length += ((uint8_t) strlen(group) );
-      length += 1; // 8-bit string length
+        buffer_length += ((uint8_t) strlen(group) );
+      buffer_length += 1; // 8-bit string length
       if( hostname != NULL)
-        length += ((uint8_t) strlen(hostname) );
+        buffer_length += ((uint8_t) strlen(hostname) );
 #endif
 #if defined (_WIN32)
       {
         uint32_t size;
 
-        length += 2; // two variable lengths
+        buffer_length += 2; // two variable lengths
 
         size = 80;
         if (GetUserNameA(user_buffer, &size))
           {
             user = user_buffer;
-            length += ((uint8_t)strlen(user));
+            buffer_length += ((uint8_t)strlen(user));
           }
         else
           user = NULL;
@@ -382,7 +430,7 @@ void *ioc_alive_listen(void *data)
         if (GetComputerNameA(machine_buffer, &size))
           {
             machine = machine_buffer;
-            length += ((uint8_t)strlen(machine));
+            buffer_length += ((uint8_t)strlen(machine));
           }
         else
           machine = NULL;
@@ -395,10 +443,10 @@ void *ioc_alive_listen(void *data)
             envdef_len[i][0] = 0;
           else
             {
-              number++;
-              length += 3; // 8-bit key & 16-bit value string lengths
+              ev_number++;
+              buffer_length += 3; // 8-bit key & 16-bit value string lengths
               envdef_len[i][0] = strlen(prpvt->envdef[i]);
-              length += envdef_len[i][0];
+              buffer_length += envdef_len[i][0];
               q = getenv(prpvt->envdef[i]);
               if( q == NULL)
                 envdef_len[i][1] = 0;
@@ -408,7 +456,7 @@ void *ioc_alive_listen(void *data)
                   // if size is greater that 16-bit max, truncate to zero
                   if( envdef_len[i][1] > 65535)
                     envdef_len[i][1] = 0;
-                  length += envdef_len[i][1];
+                  buffer_length += envdef_len[i][1];
                 }
             }
         }
@@ -418,10 +466,10 @@ void *ioc_alive_listen(void *data)
             env_len[i][0] = 0;
           else
             {
-              number++;
-              length += 3; // 8-bit key & 16-bit value string lengths
+              ev_number++;
+              buffer_length += 3; // 8-bit key & 16-bit value string lengths
               env_len[i][0] = strlen(prpvt->env[i]);
-              length += env_len[i][0];
+              buffer_length += env_len[i][0];
               q = getenv(prpvt->env[i]);
               if( q == NULL)
                 env_len[i][1] = 0;
@@ -431,115 +479,105 @@ void *ioc_alive_listen(void *data)
                   // if size is greater that 16-bit max, truncate to zero
                   if( env_len[i][1] > 65535)
                     env_len[i][1] = 0;
-                  length += env_len[i][1];
+                  buffer_length += env_len[i][1];
                 }
             }
         }
       
-      /* printf("%d\n", length); fflush(stdout); */
+      /* Start send procedure */
+      
+      if( (send_buffer = malloc(buffer_length * sizeof(char))) == NULL)
+        {
+          errlogSevPrintf( errlogMajor, "alive record: Can't malloc() "
+                           "memory to send TCP data.\n");
+          epicsSocketDestroy( client_sockfd);
+          continue;
+        }
+      sptr = send_buffer;
+      
+      // TCP protocol version
+      sptr = buffer_adder_16( sptr, PROTOCOL_VERSION);
+      // IOC type, currently 1 = vxworks, 2 = linux, 3 = darwin
+      sptr = buffer_adder_16( sptr, type);
 
-      msg32 = htonl( length);
-      send( client_sockfd, (void *) &msg32, sizeof(uint32_t), 0);
-      msg16 = htons( number);
-      send( client_sockfd, (void *) &msg16, sizeof(uint16_t), 0);
+      sptr = buffer_adder_32( sptr, buffer_length);
+      sptr = buffer_adder_16( sptr, ev_number);
 
       for( i = 0; i < ENV_CNT; i++)
         {
           if( envdef_len[i][0] == 0)
             continue;
 
-          len8 = envdef_len[i][0];
-          send( client_sockfd, (void *) &len8, sizeof(uint8_t), 0);
-          send( client_sockfd, prpvt->envdef[i], len8, 0);
+          sptr = buffer_adder_8string( sptr, prpvt->envdef[i],
+                                       envdef_len[i][0]);
 
-          q = getenv(prpvt->envdef[i]);
-          len16 = envdef_len[i][1];
-          msg16 = htons( len16);
-          send( client_sockfd, (void *) &msg16, sizeof(uint16_t), 0);
-          if( len16)
-            send( client_sockfd, q, len16, 0);
+          if( envdef_len[i][1] == 0)
+            sptr = buffer_adder_16( sptr, 0);
+          else
+            {
+              // protect against variable disappearing
+              q = getenv(prpvt->envdef[i]);
+              sptr = buffer_adder_16string( sptr, q == NULL ? "" : q,
+                                           envdef_len[i][1]);
+            }
+            
         }
       for( i = 0; i < ENV_CNT; i++)
         {
           if( env_len[i][0] == 0)
             continue;
 
-          len8 = env_len[i][0];
-          send( client_sockfd, (void *) &len8, sizeof(uint8_t), 0);
-          send( client_sockfd, prpvt->env[i], len8, 0);
+          sptr = buffer_adder_8string( sptr, prpvt->env[i],
+                                       env_len[i][0]);
 
-          q = getenv(prpvt->env[i]);
-          len16 = env_len[i][1];
-          msg16 = htons( len16);
-          send( client_sockfd, (void *) &msg16, sizeof(uint16_t), 0);
-          if( len16)
-            send( client_sockfd, q, len16, 0);
+          if( env_len[i][1] == 0)
+            sptr = buffer_adder_16( sptr, 0);
+          else
+            {
+              // protect against variable disappearing
+              q = getenv(prpvt->env[i]);
+              sptr = buffer_adder_16string( sptr, q == NULL ? "" : q,
+                                           env_len[i][1]);
+            }
+
         }
 
 #ifdef vxWorks
-      bootparam_send( client_sockfd, bootparams.bootDev);
-      msg32 = htonl(bootparams.unitNum);
-      send( client_sockfd, (void *) &msg32, sizeof(uint32_t), 0);
-      msg32 = htonl(bootparams.procNum);
-      send( client_sockfd, (void *) &msg32, sizeof(uint32_t), 0);
-      bootparam_send( client_sockfd, bootparams.hostName);
-      bootparam_send( client_sockfd, bootparams.bootFile);
-      bootparam_send( client_sockfd, bootparams.ead);
-      bootparam_send( client_sockfd, bootparams.bad);
-      bootparam_send( client_sockfd, bootparams.had);
-      bootparam_send( client_sockfd, bootparams.gad);
-      bootparam_send( client_sockfd, bootparams.usr);
-      bootparam_send( client_sockfd, bootparams.passwd);
-      msg32 = htonl( bootparams.flags);
-      send( client_sockfd, (void *) &msg32, sizeof(uint32_t), 0);
-      bootparam_send( client_sockfd, bootparams.targetName);
-      bootparam_send( client_sockfd, bootparams.startupScript);
-      bootparam_send( client_sockfd, bootparams.other);
+      sptr = buffer_adder_8string( sptr, bootparams.bootDev);
+      sptr = buffer_adder_32( sptr, bootparams.unitNum);
+      sptr = buffer_adder_32( sptr, bootparams.procNum);
+      sptr = buffer_adder_8string( sptr, bootparams.hostName);
+      sptr = buffer_adder_8string( sptr, bootparams.bootFile);
+      sptr = buffer_adder_8string( sptr, bootparams.ead);
+      sptr = buffer_adder_8string( sptr, bootparams.bad);
+      sptr = buffer_adder_8string( sptr, bootparams.had);
+      sptr = buffer_adder_8string( sptr, bootparams.gad);
+      sptr = buffer_adder_8string( sptr, bootparams.usr);
+      sptr = buffer_adder_8string( sptr, bootparams.passwd);
+      sptr = buffer_adder_32( sptr, bootparams.flags);
+      sptr = buffer_adder_8string( sptr, bootparams.targetName);
+      sptr = buffer_adder_8string( sptr, bootparams.startupScript);
+      sptr = buffer_adder_8string( sptr, bootparams.other);
 #endif
 #if defined (linux) || defined (darwin)
-      if( user == NULL)
-        len8 = 0;
-      else
-        len8 = strlen( user);
-      send( client_sockfd, (void *) &len8, sizeof(uint8_t), 0);
-      if( user != NULL)
-        send( client_sockfd, user, len8, 0);
-
-      if( group == NULL)
-        len8 = 0;
-      else
-        len8 = strlen( group);
-      send( client_sockfd, (void *) &len8, sizeof(uint8_t), 0);
-      if( group != NULL)
-        send( client_sockfd, group, len8, 0);
-
-      if( hostname == NULL)
-        len8 = 0;
-      else
-        len8 = strlen( hostname);
-      send( client_sockfd, (void *) &len8, sizeof(uint8_t), 0);
-      if( hostname != NULL)
-        send( client_sockfd, hostname, len8, 0);
+      sptr = buffer_adder_8string_nullcheck( sptr, user);
+      sptr = buffer_adder_8string_nullcheck( sptr, group);
+      sptr = buffer_adder_8string_nullcheck( sptr, hostname);
 #endif
 #if defined (_WIN32)
-	  if (user == NULL)
-		  len8 = 0;
-	  else
-		  len8 = strlen(user);
-	  send(client_sockfd, (void *)&len8, sizeof(uint8_t), 0);
-	  if (user != NULL)
-		  send(client_sockfd, user, len8, 0);
-
-	  if (machine == NULL)
-		  len8 = 0;
-	  else
-		  len8 = strlen(machine);
-	  send(client_sockfd, (void *)&len8, sizeof(uint8_t), 0);
-	  if (machine != NULL)
-		  send(client_sockfd, machine, len8, 0);
+      sptr = buffer_adder_8string_nullcheck( sptr, user);
+      sptr = buffer_adder_8string_nullcheck( sptr, machine);
 #endif
+      ret = sender( client_sockfd, send_buffer, buffer_length);
       epicsSocketDestroy( client_sockfd);
-
+      free(send_buffer);
+      if( ret) // error, so don't unset flags
+        {
+          errlogSevPrintf( errlogMajor, "alive record: Can't send TCP data "
+                           "(send errno=%d).\n", ret);
+          continue;
+        }
+      
       // turn off request flag
       prpvt->flags &= ~((uint16_t) 1);
       // if itrigger was set, unset it
@@ -551,6 +589,7 @@ void *ioc_alive_listen(void *data)
         }
     }
 
+  
   return NULL;
 }
 
@@ -681,8 +720,10 @@ static long init_record(void *precord, int pass)
 
   prec->val = 0;
   
-  sprintf( prec->ver, "%d-%d-%d%s", ALIVE_VERSION, ALIVE_REVISION,
-           ALIVE_MODIFICATION, ALIVE_DEV_STATUS );
+  i = sprintf( prec->ver, "%d-%d-%d", ALIVE_VERSION, ALIVE_REVISION,
+               ALIVE_MODIFICATION );
+  if( ALIVE_DEV_STATUS > 0)
+    sprintf( &prec->ver[i], "-dev%d", ALIVE_DEV_STATUS );
 
   prpvt = prec->rpvt;
 
@@ -775,7 +816,7 @@ static long init_record(void *precord, int pass)
     epicsThreadCreate("alive_udp_send_thread", 50, 
                       epicsThreadGetStackSize(epicsThreadStackMedium),
                       (EPICSTHREADFUNC) ioc_alive_send, (void *) precord);
-  
+
   return 0;
 }
 
