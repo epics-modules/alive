@@ -51,10 +51,10 @@ content="text/html; charset=iso-8859-1">
       and for "$(HPRD)" is "15".  If multiple IOC are to run on the
       same computer, then "$(IPORT)" for each IOC should have a
       different value, or all "$(IPORT)" values should be set to zero
-      to allow the system to determine it.  Only the first seven of
-      the sixteen default environment variable fields, "$(END1)" to
-      "$(END16)", have values, being "ARCH", "TOP", "EPICS_BASE",
-      "SUPPORT", "ENGINEER", "LOCATION", and "GROUP".
+      to allow the system to determine it.  Only the first nine of the
+      default environment variable fields, "$(EVD1)" to "$(EVD9)",
+      have values, being "ARCH", "TOP", "EPICS_BASE", "SUPPORT",
+      "ENGINEER", "LOCATION", "GROUP", "STY", and "PROCSERV_INFO".
       </p>
   </dd>
   <dt>aliveMSGCalc.db</dt>
@@ -94,8 +94,17 @@ content="text/html; charset=iso-8859-1">
   <dt>aliveRecord.adl</dt>
   <dd>
     <p>
-      This is the medm ADL file for an alive record.  All the fields are
-      exposed on this screen.
+      This is the medm ADL file for an alive record.  All the fields,
+      except for the environment variables to be sent, are exposed on
+      this screen.
+    </p>
+  </dd>
+  <dt>aliveRecordEnvVars.adl</dt>
+  <dd>
+    <p>
+      This is the medm ADL file for the environment variables to be
+      sent by the alive record.  The top values are the unchangeable
+      defaults, while the bottom values can be changed at any time.
     </p>
   </dd>
 </dl>
@@ -127,6 +136,10 @@ content="text/html; charset=iso-8859-1">
   <li>
     Make sure that IPSTS gets set to "Operable", otherwise the
     information port is not working.
+  </li>
+  <li>
+    Make sure that RADDR has a valid IPv4 address in it, as converted
+    from RHOST.
   </li>
   <li>
     Make sure that the HRTBT field is set to "On" (the default).
