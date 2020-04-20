@@ -150,8 +150,12 @@ int sender( SOCKET sock, void *data, int size)
   while( cnt < size)
     {
       i = send( sock, data+cnt, size-cnt, 0);
-      if( i < 0)
-        return errno;
+      if( i == -1)
+        {
+          if( errno == EINTR)
+            continue;
+          return errno;
+        }
       cnt += i;
     }
   return 0;
@@ -185,6 +189,14 @@ char *buffer_adder_16string( char *bptr, char *string, uint16_t length)
   *((uint16_t *) bptr) = htons(length);
   memcpy( (bptr + 2), string, length);
   return bptr + 2 + length;
+}
+char *buffer_adder_8string_autolen( char *bptr, char *string)
+{
+  uint8_t length;
+  length = strlen(string);
+  *((uint8_t *) bptr) = length;
+  memcpy( (bptr + 1), string, length);
+  return bptr + 1 + length;
 }
 char *buffer_adder_8string_nullcheck( char *bptr, char *string)
 {
@@ -515,8 +527,8 @@ void *ioc_alive_listen(void *data)
             sptr = buffer_adder_16( sptr, 0);
           else
             {
-              // protect against variable disappearing
               q = getenv(prpvt->envdef[i]);
+              // protect against variable disappearing
               sptr = buffer_adder_16string( sptr, q == NULL ? "" : q,
                                            envdef_len[i][1]);
             }
@@ -534,7 +546,6 @@ void *ioc_alive_listen(void *data)
             sptr = buffer_adder_16( sptr, 0);
           else
             {
-              // protect against variable disappearing
               q = getenv(prpvt->env[i]);
               sptr = buffer_adder_16string( sptr, q == NULL ? "" : q,
                                            env_len[i][1]);
@@ -543,21 +554,21 @@ void *ioc_alive_listen(void *data)
         }
 
 #ifdef vxWorks
-      sptr = buffer_adder_8string( sptr, bootparams.bootDev);
+      sptr = buffer_adder_8string_autolen( sptr, bootparams.bootDev);
       sptr = buffer_adder_32( sptr, bootparams.unitNum);
       sptr = buffer_adder_32( sptr, bootparams.procNum);
-      sptr = buffer_adder_8string( sptr, bootparams.hostName);
-      sptr = buffer_adder_8string( sptr, bootparams.bootFile);
-      sptr = buffer_adder_8string( sptr, bootparams.ead);
-      sptr = buffer_adder_8string( sptr, bootparams.bad);
-      sptr = buffer_adder_8string( sptr, bootparams.had);
-      sptr = buffer_adder_8string( sptr, bootparams.gad);
-      sptr = buffer_adder_8string( sptr, bootparams.usr);
-      sptr = buffer_adder_8string( sptr, bootparams.passwd);
+      sptr = buffer_adder_8string_autolen( sptr, bootparams.hostName);
+      sptr = buffer_adder_8string_autolen( sptr, bootparams.bootFile);
+      sptr = buffer_adder_8string_autolen( sptr, bootparams.ead);
+      sptr = buffer_adder_8string_autolen( sptr, bootparams.bad);
+      sptr = buffer_adder_8string_autolen( sptr, bootparams.had);
+      sptr = buffer_adder_8string_autolen( sptr, bootparams.gad);
+      sptr = buffer_adder_8string_autolen( sptr, bootparams.usr);
+      sptr = buffer_adder_8string_autolen( sptr, bootparams.passwd);
       sptr = buffer_adder_32( sptr, bootparams.flags);
-      sptr = buffer_adder_8string( sptr, bootparams.targetName);
-      sptr = buffer_adder_8string( sptr, bootparams.startupScript);
-      sptr = buffer_adder_8string( sptr, bootparams.other);
+      sptr = buffer_adder_8string_autolen( sptr, bootparams.targetName);
+      sptr = buffer_adder_8string_autolen( sptr, bootparams.startupScript);
+      sptr = buffer_adder_8string_autolen( sptr, bootparams.other);
 #endif
 #if defined (linux) || defined (darwin)
       sptr = buffer_adder_8string_nullcheck( sptr, user);
