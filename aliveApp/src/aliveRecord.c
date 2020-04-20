@@ -143,7 +143,7 @@ struct rpvtStruct
 };
 
 // REDO sender to have 5 second timeout and select()
-int sender( SOCKET sock, void *data, int size)
+static int sender( SOCKET sock, void *data, int size)
 {
   int i, cnt;
   cnt = 0;
@@ -163,34 +163,34 @@ int sender( SOCKET sock, void *data, int size)
 
 // these functions assume that the buffer length has been
 // computed correctly, which is needed for header as well
-char *buffer_adder_8( char *bptr, uint8_t value)
-{
-  *((uint8_t *) bptr) = value;
-  return bptr + 1;
-}
-char *buffer_adder_16( char *bptr, uint16_t value)
+/* static char *buffer_adder_8( char *bptr, uint8_t value) */
+/* { */
+/*   *((uint8_t *) bptr) = value; */
+/*   return bptr + 1; */
+/* } */
+static char *buffer_adder_16( char *bptr, uint16_t value)
 {
   *((uint16_t *) bptr) = htons(value);
   return bptr + 2;
 }
-char *buffer_adder_32( char *bptr, uint32_t value)
+static char *buffer_adder_32( char *bptr, uint32_t value)
 {
   *((uint32_t *) bptr) = htonl(value);
   return bptr + 4;
 }
-char *buffer_adder_8string( char *bptr, char *string, uint8_t length)
+static char *buffer_adder_8string( char *bptr, char *string, uint8_t length)
 {
   *((uint8_t *) bptr) = length;
   memcpy( (bptr + 1), string, length);
   return bptr + 1 + length;
 }
-char *buffer_adder_16string( char *bptr, char *string, uint16_t length)
+static char *buffer_adder_16string( char *bptr, char *string, uint16_t length)
 {
   *((uint16_t *) bptr) = htons(length);
   memcpy( (bptr + 2), string, length);
   return bptr + 2 + length;
 }
-char *buffer_adder_8string_autolen( char *bptr, char *string)
+static char *buffer_adder_8string_autolen( char *bptr, char *string)
 {
   uint8_t length;
   length = strlen(string);
@@ -198,7 +198,7 @@ char *buffer_adder_8string_autolen( char *bptr, char *string)
   memcpy( (bptr + 1), string, length);
   return bptr + 1 + length;
 }
-char *buffer_adder_8string_nullcheck( char *bptr, char *string)
+static char *buffer_adder_8string_nullcheck( char *bptr, char *string)
 {
   if( string == NULL)
     {
@@ -216,7 +216,7 @@ char *buffer_adder_8string_nullcheck( char *bptr, char *string)
     }
 }
 
-void *ioc_alive_listen(void *data)
+static void *ioc_alive_listen(void *data)
 {
   aliveRecord *prec = (aliveRecord *) data;
   struct rpvtStruct *prpvt;
@@ -605,7 +605,7 @@ void *ioc_alive_listen(void *data)
 }
 
 
-void *ioc_alive_send(void *data)
+static void *ioc_alive_send(void *data)
 {
   aliveRecord *prec = (aliveRecord *) data;
   struct rpvtStruct *prpvt;
