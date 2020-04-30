@@ -9,23 +9,24 @@ content="text/html; charset=iso-8859-1">
 
 <h1 align="center">alive Release Notes</h1>
 
-<h2 align="center">Pending Changes</h2>
+<h2 align="center">Release 1-2-0</h2>
 
 <p>
-  Allow RHOST to be a name, and not just a numeric IP address.  Added RADDR
-  to contain the resulting IP address found.
+  Allow <b>RHOST</b> to be a name, and not just a numeric IP address.
+  Added <b>RADDR</b> to contain the resulting IP address found, or
+  state that the <b>RHOST</b> value is invalid.
 </p>
 <p>
-  Changed the name of the ENVxx fields to EVxx.
+  Changed the name of the <b>ENVxx</b> fields to <b>EVxx</b>.
 </p>
 <p>
-  Added 16 EVDxx fields, similar to EVxx fields, which are default
-  environment variables that are unchangeable after boot.
+  Added 16 <b>EVDxx</b> fields, similar to <b>EVxx</b> fields, which
+  are default environment variables that are unchangeable after boot.
 </p>
 <p>
   Moved the default environment variables in <i>alive.db</i> from the
-  renamed ENVxx fields to the new EVDxx fields. Added
-  <strong>STY</strong> and <strong>PROCSERV_INFO</strong> as EVDxx
+  renamed <b>ENVxx</b> fields to the new <b>EVDxx</b> fields. Added
+  <i>STY</i> and <i>PROCSERV_INFO</i> as <b>EVDxx</b>
   defaults.
 </p>
   
@@ -38,13 +39,13 @@ content="text/html; charset=iso-8859-1">
 <h2 align="center">Release 1-1-0</h2>
 
 <p>
-  Added a field IOCNM which shows the IOC name that is sent to the
-  remote server.  If this value is set directly, then this is the
-  value used, otherwise it is found using the NMVAR field.
+  Added a field <b>IOCNM</b> which shows the IOC name that is sent to
+  the remote server.  If this value is set directly, then this is the
+  value used, otherwise it is found using the <b>NMVAR</b> field.
 </p>
 <p>
-  Added a field NMVAR to define the environment variable that defines
-  the IOC's name, with it defaulting to IOC.
+  Added a field <b>NMVAR</b> to define the environment variable that
+  defines the IOC's name, with it defaulting to IOC.
 </p>
 <p>
   Added a new database, <i>aliveMSGCalc.db</i>, which creates a
