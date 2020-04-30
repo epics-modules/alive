@@ -1,14 +1,14 @@
 
 file {
-	name="/home/beams/DOHNARMS/epicsdev/software/alive/aliveRec/aliveApp/op/adl/aliveRecordEnvVars.adl"
+	name="/home/beams4/DOHNARMS/epicsdev/software/alive/aliveRec/aliveApp/op/adl/aliveRecordEnvVars.adl"
 	version=030111
 }
 display {
 	object {
-		x=25
-		y=62
+		x=16
+		y=54
 		width=305
-		height=450
+		height=455
 	}
 	clr=14
 	bclr=3

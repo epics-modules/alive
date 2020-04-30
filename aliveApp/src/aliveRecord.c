@@ -64,7 +64,7 @@
 #define ALIVE_VERSION (1)
 #define ALIVE_REVISION (2)
 #define ALIVE_MODIFICATION (0)
-#define ALIVE_DEV_STATUS (3)
+#define ALIVE_DEV_VERSION (0) // 0 means not dev
 
 #define PROTOCOL_VERSION (5)
 
@@ -733,8 +733,8 @@ static long init_record(void *precord, int pass)
   
   i = sprintf( prec->ver, "%d-%d-%d", ALIVE_VERSION, ALIVE_REVISION,
                ALIVE_MODIFICATION );
-  if( ALIVE_DEV_STATUS > 0)
-    sprintf( &prec->ver[i], "-dev%d", ALIVE_DEV_STATUS );
+  if( ALIVE_DEV_VERSION > 0)
+    sprintf( &prec->ver[i], "-dev%d", ALIVE_DEV_VERSION );
 
   prpvt = prec->rpvt;
 
@@ -787,6 +787,10 @@ static long init_record(void *precord, int pass)
     {
       prpvt->ready_flag = 1;
       strcpy( prec->raddr, inet_ntoa( prpvt->h_addr.sin_addr) );
+    }
+  else
+    {
+      strcpy( prec->raddr, "invalid RHOST" );
     }
   
   flag = sscanf( prec->iocnm, "%s", prpvt->ioc_name);
@@ -876,8 +880,9 @@ static long special(DBADDR *paddr, int after)
       else
         {
           prpvt->ready_flag = 0;
-          prec->raddr[0] = '\0';
+          strcpy( prec->raddr, "invalid RHOST" );
         }
+      db_post_events(prec,&prec->raddr,DBE_VALUE);
       break;
     case(aliveRecordRPORT):
       prpvt->h_addr.sin_port = htons(prec->rport);

@@ -87,8 +87,9 @@
   The heartbeat UDP packets are sent to a remote server using
   the <strong>RHOST</strong> and <strong>RPORT</strong> fields to
   specify address and port. The <strong>RHOST</strong> can be a name
-  or an IPv4 numeric address, and the corresponding IPv4 address is
-  displayed in the <strong>RADDR</strong> field.
+  or an IPv4 numeric address; the resulting valid IPv4 address is
+  found in the <strong>RADDR</strong> field, unless there was an error
+  and then "invalid RHOST" will be found instead.
 </p>
 <p>
   The IOC's actual name as reported to the remote server
@@ -149,8 +150,9 @@
   added locally with disregard to the defaults.
 </p>
 <p>
-  The version of the record is kept in <strong>VER</strong> as a
-  string, in the form of "x-y-z".
+  The release version number of the record is kept in
+  <strong>VER</strong> as a string, in the form of "X-Y-Z".  A
+  development version will have a string in the form of "X-Y-Z-devA".
 </p>
 
 
