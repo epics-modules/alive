@@ -63,7 +63,7 @@
 
 #define ALIVE_VERSION (1)
 #define ALIVE_REVISION (2)
-#define ALIVE_MODIFICATION (0)
+#define ALIVE_MODIFICATION (1)
 #define ALIVE_DEV_VERSION (0) // 0 means not dev
 
 #define PROTOCOL_VERSION (5)
