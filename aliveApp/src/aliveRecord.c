@@ -149,7 +149,7 @@ static int sender( SOCKET sock, void *data, int size)
   cnt = 0;
   while( cnt < size)
     {
-      i = send( sock, data+cnt, size-cnt, 0);
+      i = send( sock, (void *) (((char *) data) + cnt), size-cnt, 0);
       if( i == -1)
         {
           if( errno == EINTR)
