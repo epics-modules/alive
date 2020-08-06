@@ -21,20 +21,43 @@ recordtype(alive) {
                 prompt("Return value")
                 special(SPC_NOMOD)
         }
+        field(IOCNM,DBF_STRING) {
+                prompt("IOC name")
+                special(SPC_NOMOD)
+                size(40)
+                initial("")
+        }
         field(RHOST,DBF_STRING) {
                 prompt("Remote host")
-                special(SPC_MOD)
+                special(SPC_NOMOD)
                 size(40)
                 initial("")
         }
         field(RADDR,DBF_STRING) {
-                prompt("Remote IP Address")
+                prompt("Remote IP address")
                 special(SPC_NOMOD)
                 size(20)
                 initial("")
         }
         field(RPORT,DBF_USHORT) {
                 prompt("Remote port")
+                special(SPC_NOMOD)
+                initial("0")
+        }
+        field(AHOST,DBF_STRING) {
+                prompt("Auxiliary remote host")
+                special(SPC_MOD)
+                size(40)
+                initial("")
+        }
+        field(AADDR,DBF_STRING) {
+                prompt("Auxiliary remote IP address")
+                special(SPC_NOMOD)
+                size(20)
+                initial("")
+        }
+        field(APORT,DBF_USHORT) {
+                prompt("Auxiliary remote port")
                 special(SPC_MOD)
                 initial("0")
         }
@@ -50,6 +73,7 @@ recordtype(alive) {
         }
         field(HMAG,DBF_ULONG) {
                 prompt("Heartbeat magic number")
+                special(SPC_NOMOD)
                 initial("305419896")
         }
         field(MSG,DBF_ULONG) {
@@ -278,19 +302,6 @@ recordtype(alive) {
                 special(SPC_MOD)
                 menu(aliveISUP)
                 initial("Off")
-        }
-
-        field(NMVAR,DBF_STRING) {
-                prompt("IOC name variable")
-                special(SPC_NOMOD)
-                size(40)
-                initial("IOC")
-        }
-        field(IOCNM,DBF_STRING) {
-                prompt("IOC name")
-                special(SPC_NOMOD)
-                size(40)
-                initial("")
         }
 
         field(VER,DBF_STRING) {

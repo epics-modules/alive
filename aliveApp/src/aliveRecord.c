@@ -62,8 +62,8 @@
 
 
 #define ALIVE_VERSION (1)
-#define ALIVE_REVISION (2)
-#define ALIVE_MODIFICATION (1)
+#define ALIVE_REVISION (3)
+#define ALIVE_MODIFICATION (0)
 #define ALIVE_DEV_VERSION (0) // 0 means not dev
 
 #define PROTOCOL_VERSION (5)
@@ -122,7 +122,7 @@ struct rpvtStruct
   struct alive_t *alive;
 
   char fault_flag; // in case of unrecoverable error
-  char ready_flag; // in case host doesn't make sense
+  char aux_present_flag; // in case aux is set correctly
 
   uint32_t incarnation;
   uint16_t flags;
@@ -139,7 +139,8 @@ struct rpvtStruct
   epicsThreadId send_thread;
 
   SOCKET socket;
-  struct sockaddr_in h_addr;
+  struct sockaddr_in r_addr;
+  struct sockaddr_in a_addr;
 };
 
 // REDO sender to have 5 second timeout and select()
@@ -349,9 +350,12 @@ static void *ioc_alive_listen(void *data)
         continue;
 
       // fault flag can't happen, but just in case
-      if( prec->isup || prpvt->fault_flag || !prpvt->ready_flag || 
-          ( ((struct sockaddr_in *)&r_addr)->sin_addr.s_addr !=
-            prpvt->h_addr.sin_addr.s_addr) )
+      if( prec->isup || prpvt->fault_flag ||
+          !( (((struct sockaddr_in *)&r_addr)->sin_addr.s_addr ==
+              prpvt->r_addr.sin_addr.s_addr) ||
+             ( prpvt->aux_present_flag &&
+               (((struct sockaddr_in *)&r_addr)->sin_addr.s_addr ==
+                prpvt->a_addr.sin_addr.s_addr) ) )   )
         {
           epicsSocketDestroy(client_sockfd);
           continue;
@@ -626,8 +630,7 @@ static void *ioc_alive_send(void *data)
 
   while(1)
     {
-      if( prpvt->fault_flag || !prpvt->ready_flag || 
-          (prec->hrtbt == aliveHRTBT_OFF ) )
+      if( prpvt->fault_flag || (prec->hrtbt == aliveHRTBT_OFF ) )
         {
           epicsThreadSleep( (double) prec->hprd);
           continue;
@@ -688,13 +691,21 @@ static void *ioc_alive_send(void *data)
       p += (len + 1);
 
       if( sendto( prpvt->socket, buffer, (int) (p - buffer), 0, 
-                  (struct sockaddr *) &(prpvt->h_addr), 
+                  (struct sockaddr *) &(prpvt->r_addr), 
                   sizeof(struct sockaddr_in))  == -1)
         {
           errlogSevPrintf( errlogMajor, "alive record: Can't send UDP packet "
                            "(sendto errno=%d).\n", errno);
         }
-
+      if( prpvt->aux_present_flag &&
+          sendto( prpvt->socket, buffer, (int) (p - buffer), 0, 
+                  (struct sockaddr *) &(prpvt->a_addr), 
+                  sizeof(struct sockaddr_in))  == -1)
+        {
+          errlogSevPrintf( errlogMajor, "alive record: Can't send UDP "
+                           "packet (sendto errno=%d).\n", errno);
+        }
+      
       recGblGetTimeStamp(prec);
       /* check for alarms */
       checkAlarms(prec);
@@ -714,9 +725,9 @@ static long init_record(void *precord, int pass)
 
   epicsTimeStamp start_time;
 
-  int i, flag;
+  int i;
   char *p;
-  
+  char str[40];
 
   prec = precord;
 
@@ -747,7 +758,7 @@ static long init_record(void *precord, int pass)
     prec->hprd = 15;
 
   prpvt->fault_flag = 0;
-  prpvt->ready_flag = 0;
+  prpvt->aux_present_flag = 0;
   prpvt->flags = 0;  // first bit set when port initialized
 
   epicsTimeGetCurrent(&start_time);
@@ -755,14 +766,12 @@ static long init_record(void *precord, int pass)
 
   for( i = 0; i < ENV_CNT; i++)
     {
-      flag = sscanf( *(&prec->evd1 + i), "%s", prpvt->envdef[i]);
-      if( flag != 1)
+      if( sscanf( *(&prec->evd1 + i), "%s", prpvt->envdef[i]) != 1)
         prpvt->envdef[i][0] = '\0';
     }
   for( i = 0; i < ENV_CNT; i++)
     {
-      flag = sscanf( *(&prec->ev1 + i), "%s", prpvt->env[i]);
-      if( flag != 1)
+      if( sscanf( *(&prec->ev1 + i), "%s", prpvt->env[i]) != 1)
         prpvt->env[i][0] = '\0';
     }
 
@@ -777,50 +786,74 @@ static long init_record(void *precord, int pass)
 
   
 #ifdef vxWorks
-  bzero( (void *) &(prpvt->h_addr), sizeof(struct sockaddr_in) );
+  bzero( (void *) &(prpvt->r_addr), sizeof(struct sockaddr_in) );
 #else
-  memset( (void *) &(prpvt->h_addr), 0, sizeof(struct sockaddr_in) );
+  memset( (void *) &(prpvt->r_addr), 0, sizeof(struct sockaddr_in) );
 #endif
-  prpvt->h_addr.sin_family = AF_INET;
-  prpvt->h_addr.sin_port = htons(prec->rport);
-  if(!hostToIPAddr(prec->rhost, &(prpvt->h_addr.sin_addr) ) )
+  prpvt->r_addr.sin_family = AF_INET;
+  prpvt->r_addr.sin_port = htons(prec->rport);
+  if( hostToIPAddr(prec->rhost, &(prpvt->r_addr.sin_addr) ) )
     {
-      prpvt->ready_flag = 1;
-      strcpy( prec->raddr, inet_ntoa( prpvt->h_addr.sin_addr) );
+      errlogSevPrintf( errlogFatal, "%s", "alive record: "
+                       "Won't start, RHOST value invalid.\n");
+      prpvt->fault_flag = 1;
+      return 1;
     }
-  else
+  strcpy( prec->raddr, inet_ntoa( prpvt->r_addr.sin_addr) );
+
+#ifdef vxWorks
+  bzero( (void *) &(prpvt->a_addr), sizeof(struct sockaddr_in) );
+#else
+  memset( (void *) &(prpvt->a_addr), 0, sizeof(struct sockaddr_in) );
+#endif
+  prpvt->a_addr.sin_family = AF_INET;
+  prpvt->a_addr.sin_port = htons(prec->aport);
+  if( sscanf( prec->ahost, "%s", str) == 1)
     {
-      strcpy( prec->raddr, "invalid RHOST" );
-    }
-  
-  flag = sscanf( prec->iocnm, "%s", prpvt->ioc_name);
-  if( flag == 1)
-    {
-      strcpy( prec->nmvar, "----");
-    }
-  else
-    {
-      p = getenv(prec->nmvar);
-      if( p == NULL)
+      if(!hostToIPAddr(str, &(prpvt->a_addr.sin_addr) ) )
         {
-          errlogSevPrintf( errlogFatal, "%s%s%s", 
-                           "alive record: Won't start, can't get ",
-                           prec->nmvar," name environment variable.\n");
+          prpvt->aux_present_flag = 1;
+          strcpy( prec->aaddr, inet_ntoa( prpvt->a_addr.sin_addr) );
+        }
+      else
+        strcpy( prec->aaddr, "invalid AHOST" );
+    }
+
+  
+  // iocnm is limited by DBD file to 39 characters
+  if( sscanf( prec->iocnm, "%s", prpvt->ioc_name) != 1)
+    {
+      // try to find IOC environment variable if IOCNM is not set
+      if( (p = getenv("IOC")) == NULL)
+        {
+          errlogSevPrintf( errlogFatal, "%s", 
+                           "alive record: Won't start since there is no "
+                           "IOC name, as \'NMVAR\' record field is empty "
+                           "and \'IOC\' environment variable is not set.\n");
           prpvt->fault_flag = 1;
           return 1;
         }
       // condition is sanity check, as the output buffer is static
       if( strlen( p) > 39)
         {
-          errlogSevPrintf( errlogFatal, "%s%s%s", 
-                           "alive record: Won't start, environment variable ",
-                           prec->nmvar, " too long.\n");
+          errlogSevPrintf( errlogFatal, "%s", 
+                           "alive record: Won't start since there is no "
+                           "IOC name, as \'NMVAR\' record field is empty "
+                           "and \'IOC\' environment variable is too long.\n");
           prpvt->fault_flag = 1;
           return 1;
         }
-      strncpy(prpvt->ioc_name, p, 39);
-      prpvt->ioc_name[39] = '\0';
-      strncpy(prec->iocnm, prpvt->ioc_name, 40);
+      if( sscanf( p, "%39s", prpvt->ioc_name) != 1)
+        {
+          errlogSevPrintf( errlogFatal, "%s", 
+                           "alive record: Won't start since there is no "
+                           "IOC name, as \'NMVAR\' record field and "
+                           "\'IOC\' environment variable are both empty.\n");
+          prpvt->fault_flag = 1;
+          return 1;
+        }
+
+      strcpy(prec->iocnm, prpvt->ioc_name);
     }
 
   prpvt->listen_thread = 
@@ -856,6 +889,8 @@ static long special(DBADDR *paddr, int after)
   int    special_type = paddr->special;
 
   int   fieldIndex = dbGetFieldIndex(paddr);
+
+  char str[40];
   
   int relIndex;
   int f;
@@ -871,21 +906,29 @@ static long special(DBADDR *paddr, int after)
 
   switch(fieldIndex) 
     {
-    case(aliveRecordRHOST):
-      if(!hostToIPAddr(prec->rhost, &(prpvt->h_addr.sin_addr) ) )
+    case(aliveRecordAHOST):
+      if( sscanf( prec->ahost, "%s", str) == 1)
         {
-          prpvt->ready_flag = 1;
-          strcpy( prec->raddr, inet_ntoa( prpvt->h_addr.sin_addr) );
+          if(!hostToIPAddr(str, &(prpvt->a_addr.sin_addr) ) )
+            {
+              prpvt->aux_present_flag = 1;
+              strcpy( prec->aaddr, inet_ntoa( prpvt->a_addr.sin_addr) );
+            }
+          else
+            {
+              prpvt->aux_present_flag = 0;
+              strcpy( prec->aaddr, "invalid AHOST" );
+            }
         }
       else
         {
-          prpvt->ready_flag = 0;
-          strcpy( prec->raddr, "invalid RHOST" );
+          prpvt->aux_present_flag = 0;
+          strcpy( prec->aaddr, "" );
         }
-      db_post_events(prec,&prec->raddr,DBE_VALUE);
+      db_post_events(prec,&prec->aaddr,DBE_VALUE);
       break;
-    case(aliveRecordRPORT):
-      prpvt->h_addr.sin_port = htons(prec->rport);
+    case(aliveRecordAPORT):
+      prpvt->a_addr.sin_port = htons(prec->aport);
       break;
     case(aliveRecordISUP):
       if( prec->isup )
