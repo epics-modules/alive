@@ -9,26 +9,23 @@
   </head>
   <body>
     
-    <h1>alive - IOC Operational Status Record</h1>
+    <h1 align="center">alive Record</h1>
 
-    <em>
-      Note: This record requires a separate program outside of the
-      scope of EPICS for it to be useful.  While code will be supplied
-      with this module for interacting with alive records, it is
-      intended for it to be straightforward to create a different
-      implementation.
-    </em>
-    
+    <p align="center" style="font-size: 1.4em;margin-bottom:1.5em">Dohn Arms</p>
+
+   
     <h1>1. Introduction</h1>
 
     <p>
       The alive record is intended as a way to allow verification that
       an IOC is running.  It is an active system, using heartbeat
-      messages sent to a central server, which collects heartbeat
-      messages and monitors the IOC statuses.  The alive record also
-      allows for the server to query extra information of the IOC,
-      being environment variables (specified in the record) and system
-      specific information (vxWorks boot line, Linux user, etc.)
+      messages sent to a central server (such
+      as <a href="https://github.com/epics-alive-server/alived">alived</a>),
+      which collects heartbeat messages and monitors the IOC statuses.
+      The alive record also allows for the server to query extra
+      information of the IOC, being environment variables (specified
+      in the record) and system specific information (vxWorks boot
+      line, Linux user, etc.)
     </p>
     <p>
       This system has several important consequences.  The server
@@ -866,10 +863,5 @@
     
     <hr>
     
-    <address>
-      Dohn Arms<br>
-      Advanced Photon Source
-    </address>
-
   </body>
 </html>
