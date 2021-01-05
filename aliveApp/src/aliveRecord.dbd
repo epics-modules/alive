@@ -15,6 +15,12 @@ menu(aliveIPSTS) {
         choice(aliveIPSTS_OPERABLE,"Operable")
         choice(aliveIPSTS_INOPERABLE,"Inoperable")
         }
+menu(aliveXRSTS) {
+        choice(aliveXRSTS_IDLE,"Idle")
+        choice(aliveXRSTS_QUEUED,"Queued")
+        choice(aliveXRSTS_DUE,"Due")
+        choice(aliveXRSTS_OVERDUE,"Overdue")
+        }
 recordtype(alive) {
         include "dbCommon.dbd" 
         field(VAL,DBF_ULONG) {
@@ -44,6 +50,12 @@ recordtype(alive) {
                 special(SPC_NOMOD)
                 initial("0")
         }
+        field(RRSTS,DBF_MENU) {
+                prompt("Remote read status")
+                special(SPC_NOMOD)
+                menu(aliveXRSTS)
+                initial("Idle")
+        }
         field(AHOST,DBF_STRING) {
                 prompt("Auxiliary remote host")
                 special(SPC_MOD)
@@ -60,6 +72,12 @@ recordtype(alive) {
                 prompt("Auxiliary remote port")
                 special(SPC_MOD)
                 initial("0")
+        }
+        field(ARSTS,DBF_MENU) {
+                prompt("Auxiliary remote read status")
+                special(SPC_NOMOD)
+                menu(aliveXRSTS)
+                initial("Idle")
         }
         field(HRTBT,DBF_MENU) {
                 prompt("Heartbeat state")

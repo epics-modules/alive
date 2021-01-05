@@ -62,7 +62,7 @@
 
 
 #define ALIVE_VERSION (1)
-#define ALIVE_REVISION (3)
+#define ALIVE_REVISION (4)
 #define ALIVE_MODIFICATION (0)
 #define ALIVE_DEV_VERSION (0) // 0 means not dev
 
@@ -125,9 +125,10 @@ struct rpvtStruct
   char aux_present_flag; // in case aux is set correctly
 
   uint32_t incarnation;
-  uint16_t flags;
   uint16_t orig_port;
 
+  int r_read_flag, a_read_flag;
+  
   char ioc_name[41];
   
   // 40 character limit enforced by EPICS string type
@@ -217,6 +218,7 @@ static char *buffer_adder_8string_nullcheck( char *bptr, char *string)
     }
 }
 
+
 static void *ioc_alive_listen(void *data)
 {
   aliveRecord *prec = (aliveRecord *) data;
@@ -231,6 +233,9 @@ static void *ioc_alive_listen(void *data)
 
   osiSocklen_t socklen;
 
+  // which server is this from: 0=RHOST, 1=AHOST
+  int remote_addr_flag;
+  
   char *q;
   
   // key and value lengths, key length of zero means it doesn't exist
@@ -337,8 +342,16 @@ static void *ioc_alive_listen(void *data)
   prec->ipsts = aliveIPSTS_OPERABLE;
   monitor_field(prec, (void *) &prec->ipsts);
 
-  // request remote read
-  prpvt->flags |= ((uint16_t) 1);
+  // request remote read since port is running
+  prpvt->r_read_flag = 1;
+  prec->rrsts = aliveXRSTS_QUEUED;
+  monitor_field(prec, (void *) &prec->rrsts);
+  if( prpvt->aux_present_flag)
+    {
+      prec->arsts = aliveXRSTS_QUEUED;
+      monitor_field(prec, (void *) &prec->arsts);
+      prpvt->a_read_flag = 1;
+    }
   
   while(1)
     {
@@ -349,13 +362,18 @@ static void *ioc_alive_listen(void *data)
       if (client_sockfd == INVALID_SOCKET)
         continue;
 
-      // fault flag can't happen, but just in case
-      if( prec->isup || prpvt->fault_flag ||
-          !( (((struct sockaddr_in *)&r_addr)->sin_addr.s_addr ==
-              prpvt->r_addr.sin_addr.s_addr) ||
-             ( prpvt->aux_present_flag &&
+      if( ((struct sockaddr_in *)&r_addr)->sin_addr.s_addr ==
+          prpvt->r_addr.sin_addr.s_addr)
+        remote_addr_flag = 0;  // RHOST
+      else if( prpvt->aux_present_flag &&
                (((struct sockaddr_in *)&r_addr)->sin_addr.s_addr ==
-                prpvt->a_addr.sin_addr.s_addr) ) )   )
+                prpvt->a_addr.sin_addr.s_addr) ) 
+        remote_addr_flag = 1;  // AHOST
+      else
+        remote_addr_flag = -1;
+      
+      // fault flag can't happen, but just in case
+      if( (remote_addr_flag == -1) || prec->isup || prpvt->fault_flag )
         {
           epicsSocketDestroy(client_sockfd);
           continue;
@@ -593,20 +611,25 @@ static void *ioc_alive_listen(void *data)
           continue;
         }
       
-      // turn off request flag
-      prpvt->flags &= ~((uint16_t) 1);
-      // if itrigger was set, unset it
-      if( prec->itrig)
+      // turn off request flag for host
+      if( !remote_addr_flag)
         {
-          prec->itrig = 0; 
-
-          monitor_field(prec, (void *) &prec->itrig);
+          prpvt->r_read_flag = 0;
+          prec->rrsts = aliveXRSTS_IDLE;
+          monitor_field(prec, (void *) &prec->rrsts);
+        }
+      else
+        {
+          prpvt->a_read_flag = 0;
+          prec->arsts = aliveXRSTS_IDLE;
+          monitor_field(prec, (void *) &prec->arsts);
         }
     }
 
   
   return NULL;
 }
+
 
 
 static void *ioc_alive_send(void *data)
@@ -617,19 +640,41 @@ static void *ioc_alive_send(void *data)
   // 200 is fine, ioc name length is limited to 100 in init
   char buffer[200];  
 
-  uint32_t message;
-
   epicsTimeStamp now;
 
+  uint16_t *flags_location;
+  
   char *p;
   int len;
 
   prpvt = prec->rpvt;
   
   epicsThreadSleep( 0.1);
-
+ 
   while(1)
     {
+      // escalate the read status
+      if( prec->rrsts == aliveXRSTS_DUE)
+        {
+          prec->rrsts = aliveXRSTS_OVERDUE;
+          monitor_field(prec, (void *) &prec->rrsts);
+        }
+      else if( prec->rrsts == aliveXRSTS_QUEUED)
+        {
+          prec->rrsts = aliveXRSTS_DUE;
+          monitor_field(prec, (void *) &prec->rrsts);
+        }
+      if( prec->arsts == aliveXRSTS_DUE)
+        {
+          prec->arsts = aliveXRSTS_OVERDUE;
+          monitor_field(prec, (void *) &prec->arsts);
+        }
+      else if( prec->arsts == aliveXRSTS_QUEUED)
+        {
+          prec->arsts = aliveXRSTS_DUE;
+          monitor_field(prec, (void *) &prec->arsts);
+        }
+
       if( prpvt->fault_flag || (prec->hrtbt == aliveHRTBT_OFF ) )
         {
           epicsThreadSleep( (double) prec->hprd);
@@ -641,55 +686,48 @@ static void *ioc_alive_send(void *data)
       p = buffer;
 
       // magic signature, to help weed out probes
-      message = htonl(prec->hmag);
-      *((uint32_t *) p) = message;
+      *((uint32_t *) p) = htonl(prec->hmag);
       p += 4;
 
       // protocol version
-      message = htons(PROTOCOL_VERSION);
-      *((uint16_t *) p) = message;
+      *((uint16_t *) p) = htons(PROTOCOL_VERSION);
       p += 2;
   
       // incarnation
-      message = htonl(prpvt->incarnation);
-      *((uint32_t *) p) = message;
+      *((uint32_t *) p) = htonl(prpvt->incarnation);
       p += 4;
 
       // current time
       epicsTimeGetCurrent(&now);
-      message = htonl( (uint32_t) now.secPastEpoch);
-      *((uint32_t *) p) = message;
+      *((uint32_t *) p) = htonl( (uint32_t) now.secPastEpoch);
       p += 4;
 
       // heartbeat
-      message = htonl(prec->val);
-      *((uint32_t *) p) = message;
+      *((uint32_t *) p) = htonl(prec->val);
       p += 4;
 
       // period
-      message = htons( prec->hprd);
-      *((uint16_t *) p) = message;
+      *((uint16_t *) p) = htons( prec->hprd);
       p += 2;
 
       // flags
-      message = htons( prpvt->flags);
-      *((uint16_t *) p) = message;
+      flags_location = (uint16_t *) p;
       p += 2;
 
       // return port
-      message = htons( prec->iport);
-      *((uint16_t *) p) = message;
+      *((uint16_t *) p) = htons( prec->iport);
       p += 2;
 
       // user message
-      message = htonl(prec->msg);
-      *((uint32_t *) p) = message;
+      *((uint32_t *) p) = htonl(prec->msg);
       p += 4;
 
       len = sprintf( p, "%s", prpvt->ioc_name);
       // include trailing zero
       p += (len + 1);
 
+
+      *flags_location = htons((uint16_t) (2*prec->isup + prpvt->r_read_flag));
       if( sendto( prpvt->socket, buffer, (int) (p - buffer), 0, 
                   (struct sockaddr *) &(prpvt->r_addr), 
                   sizeof(struct sockaddr_in))  == -1)
@@ -697,15 +735,19 @@ static void *ioc_alive_send(void *data)
           errlogSevPrintf( errlogMajor, "alive record: Can't send UDP packet "
                            "(sendto errno=%d).\n", errno);
         }
-      if( prpvt->aux_present_flag &&
-          sendto( prpvt->socket, buffer, (int) (p - buffer), 0, 
-                  (struct sockaddr *) &(prpvt->a_addr), 
-                  sizeof(struct sockaddr_in))  == -1)
+      if( prpvt->aux_present_flag)
         {
-          errlogSevPrintf( errlogMajor, "alive record: Can't send UDP "
-                           "packet (sendto errno=%d).\n", errno);
+          *flags_location = htons((uint16_t) (2*prec->isup +
+                                              prpvt->a_read_flag));
+          if( sendto( prpvt->socket, buffer, (int) (p - buffer), 0, 
+                      (struct sockaddr *) &(prpvt->a_addr), 
+                      sizeof(struct sockaddr_in))  == -1)
+            {
+              errlogSevPrintf( errlogMajor, "alive record: Can't send UDP "
+                               "packet (sendto errno=%d).\n", errno);
+            }
         }
-      
+  
       recGblGetTimeStamp(prec);
       /* check for alarms */
       checkAlarms(prec);
@@ -759,8 +801,10 @@ static long init_record(void *precord, int pass)
 
   prpvt->fault_flag = 0;
   prpvt->aux_present_flag = 0;
-  prpvt->flags = 0;  // first bit set when port initialized
 
+  prpvt->r_read_flag = 0;
+  prpvt->a_read_flag = 0;
+  
   epicsTimeGetCurrent(&start_time);
   prpvt->incarnation = (uint32_t) start_time.secPastEpoch;
 
@@ -931,13 +975,10 @@ static long special(DBADDR *paddr, int after)
       prpvt->a_addr.sin_port = htons(prec->aport);
       break;
     case(aliveRecordISUP):
-      if( prec->isup )
-        prpvt->flags |= ((uint16_t) 2);
-      else
-        prpvt->flags &= ~((uint16_t) 2);
       break;
     case(aliveRecordITRIG):
-      // falls through to trigger reread
+      prec->itrig = 0;
+      // will fall through to trigger read
       break;
     case(aliveRecordEV1):
     case(aliveRecordEV2):
@@ -957,7 +998,7 @@ static long special(DBADDR *paddr, int after)
     case(aliveRecordEV16):
       relIndex = fieldIndex - aliveRecordEV1;
       f = sscanf( *(&prec->ev1 + relIndex), "%s", prpvt->env[relIndex]);
-      if( !f)
+      if( f != 1)
         prpvt->env[relIndex][0] = '\0';
       break;
     default:
@@ -965,9 +1006,43 @@ static long special(DBADDR *paddr, int after)
       return(S_db_badChoice);
     }
 
-  // everything turns on request flag
-  prpvt->flags |= ((uint16_t) 1);
-  
+  if( fieldIndex != aliveRecordAHOST)
+    {
+      prpvt->r_read_flag = 1;
+      // if not supressed, a reading will become queued if idle
+      if( !prec->isup && (prec->rrsts == aliveXRSTS_IDLE))
+        {
+          prec->rrsts = aliveXRSTS_QUEUED;
+          monitor_field(prec, (void *) &prec->rrsts);
+        }
+      // if supressed, a reading will always be idle
+      if( prec->isup && (prec->rrsts != aliveXRSTS_IDLE))
+        {
+          prec->rrsts = aliveXRSTS_IDLE;
+          monitor_field(prec, (void *) &prec->rrsts);
+        }
+    }
+  if( prpvt->aux_present_flag)
+    {
+      prpvt->a_read_flag = 1;
+      if( !prec->isup && (prec->arsts == aliveXRSTS_IDLE))
+        {
+          prec->arsts = aliveXRSTS_QUEUED;
+          monitor_field(prec, (void *) &prec->arsts);
+        }
+      if( prec->isup && (prec->arsts != aliveXRSTS_IDLE))
+        {
+          prec->arsts = aliveXRSTS_IDLE;
+          monitor_field(prec, (void *) &prec->arsts);
+        }
+    }
+  else
+    {
+      prpvt->a_read_flag = 0;
+      prec->arsts = aliveXRSTS_IDLE;
+      monitor_field(prec, (void *) &prec->arsts);
+    }
+
   return 0;
 }
 

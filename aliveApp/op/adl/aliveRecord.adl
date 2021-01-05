@@ -1,14 +1,14 @@
 
 file {
-	name="/home/beams4/DOHNARMS/epicsdev/software/alive/aliveRec/aliveApp/op/adl/aliveRecord.adl"
+	name="/home/beams4/DOHNARMS/epicsdev/software/alive/aliveRec/iocBoot/iocaliveEx/../../aliveApp/op/adl/aliveRecord.adl"
 	version=030111
 }
 display {
 	object {
-		x=623
-		y=92
+		x=614
+		y=84
 		width=340
-		height=400
+		height=460
 	}
 	clr=14
 	bclr=3
@@ -190,95 +190,10 @@ text {
 	limits {
 	}
 }
-text {
-	object {
-		x=30
-		y=285
-		width=280
-		height=20
-	}
-	"basic attribute" {
-		clr=14
-	}
-	textix="Remote Information Reading"
-	align="horiz. centered"
-}
-text {
-	object {
-		x=205
-		y=318
-		width=40
-		height=18
-	}
-	"basic attribute" {
-		clr=14
-	}
-	textix="Port"
-	align="horiz. right"
-}
-"text update" {
-	object {
-		x=250
-		y=315
-		width=80
-		height=20
-	}
-	monitor {
-		chan="$(P)alive.IPORT"
-		clr=14
-		bclr=55
-	}
-	limits {
-	}
-}
-"text update" {
-	object {
-		x=70
-		y=315
-		width=120
-		height=20
-	}
-	monitor {
-		chan="$(P)alive.IPSTS"
-		clr=14
-		bclr=55
-	}
-	limits {
-	}
-}
-text {
-	object {
-		x=15
-		y=318
-		width=50
-		height=18
-	}
-	"basic attribute" {
-		clr=14
-	}
-	textix="Status"
-	align="horiz. right"
-}
-polyline {
-	object {
-		x=10
-		y=275
-		width=326
-		height=2
-	}
-	"basic attribute" {
-		clr=14
-		width=2
-	}
-	points {
-		(11,276)
-		(335,276)
-	}
-}
 "related display" {
 	object {
 		x=80
-		y=375
+		y=435
 		width=170
 		height=20
 	}
@@ -290,58 +205,6 @@ polyline {
 	clr=14
 	bclr=61
 	label="-Environment Variables"
-}
-menu {
-	object {
-		x=280
-		y=345
-		width=50
-		height=22
-	}
-	control {
-		chan="$(P)alive.ISUP"
-		clr=14
-		bclr=3
-	}
-}
-text {
-	object {
-		x=205
-		y=348
-		width=70
-		height=18
-	}
-	"basic attribute" {
-		clr=14
-	}
-	textix="Suppress"
-	align="horiz. right"
-}
-text {
-	object {
-		x=10
-		y=348
-		width=100
-		height=18
-	}
-	"basic attribute" {
-		clr=14
-	}
-	textix="Request Read"
-	align="horiz. right"
-}
-menu {
-	object {
-		x=115
-		y=345
-		width=80
-		height=22
-	}
-	control {
-		chan="$(P)alive.ITRIG"
-		clr=14
-		bclr=3
-	}
 }
 text {
 	object {
@@ -355,36 +218,6 @@ text {
 	}
 	textix="Remote Host"
 	align="horiz. right"
-}
-"text entry" {
-	object {
-		x=135
-		y=225
-		width=200
-		height=20
-	}
-	control {
-		chan="$(P)alive.AHOST"
-		clr=14
-		bclr=51
-	}
-	limits {
-	}
-}
-"text entry" {
-	object {
-		x=275
-		y=250
-		width=60
-		height=20
-	}
-	control {
-		chan="$(P)alive.APORT"
-		clr=14
-		bclr=51
-	}
-	limits {
-	}
 }
 "text update" {
 	object {
@@ -401,19 +234,6 @@ text {
 	align="horiz. centered"
 	limits {
 	}
-}
-text {
-	object {
-		x=10
-		y=225
-		width=110
-		height=20
-	}
-	"basic attribute" {
-		clr=14
-	}
-	textix="Aux. Host"
-	align="horiz. right"
 }
 "text update" {
 	object {
@@ -445,38 +265,6 @@ text {
 	}
 	align="horiz. centered"
 	limits {
-	}
-}
-"text update" {
-	object {
-		x=75
-		y=250
-		width=150
-		height=20
-	}
-	monitor {
-		chan="$(P)alive.AADDR"
-		clr=14
-		bclr=55
-	}
-	align="horiz. centered"
-	limits {
-	}
-}
-polyline {
-	object {
-		x=5
-		y=220
-		width=325
-		height=1
-	}
-	"basic attribute" {
-		clr=14
-		width=1
-	}
-	points {
-		(5,220)
-		(329,220)
 	}
 }
 text {
@@ -675,11 +463,52 @@ text {
 	textix="Port"
 	align="horiz. right"
 }
+"text update" {
+	object {
+		x=160
+		y=220
+		width=120
+		height=20
+	}
+	monitor {
+		chan="$(P)alive.RRSTS"
+		clr=14
+		bclr=55
+	}
+	limits {
+	}
+}
 text {
 	object {
-		x=235
-		y=253
-		width=35
+		x=55
+		y=223
+		width=100
+		height=18
+	}
+	"basic attribute" {
+		clr=14
+	}
+	textix="Read Status"
+	align="horiz. right"
+}
+text {
+	object {
+		x=30
+		y=345
+		width=280
+		height=20
+	}
+	"basic attribute" {
+		clr=14
+	}
+	textix="Remote Information Reading"
+	align="horiz. centered"
+}
+text {
+	object {
+		x=205
+		y=378
+		width=40
 		height=18
 	}
 	"basic attribute" {
@@ -688,16 +517,256 @@ text {
 	textix="Port"
 	align="horiz. right"
 }
+"text update" {
+	object {
+		x=250
+		y=375
+		width=80
+		height=20
+	}
+	monitor {
+		chan="$(P)alive.IPORT"
+		clr=14
+		bclr=55
+	}
+	limits {
+	}
+}
+"text update" {
+	object {
+		x=70
+		y=375
+		width=120
+		height=20
+	}
+	monitor {
+		chan="$(P)alive.IPSTS"
+		clr=14
+		bclr=55
+	}
+	limits {
+	}
+}
 text {
 	object {
 		x=15
-		y=253
-		width=55
+		y=378
+		width=50
 		height=18
 	}
 	"basic attribute" {
 		clr=14
 	}
-	textix="Address"
+	textix="Status"
 	align="horiz. right"
+}
+polyline {
+	object {
+		x=10
+		y=335
+		width=326
+		height=2
+	}
+	"basic attribute" {
+		clr=14
+		width=2
+	}
+	points {
+		(11,336)
+		(335,336)
+	}
+}
+menu {
+	object {
+		x=280
+		y=405
+		width=50
+		height=22
+	}
+	control {
+		chan="$(P)alive.ISUP"
+		clr=14
+		bclr=3
+	}
+}
+text {
+	object {
+		x=205
+		y=408
+		width=70
+		height=18
+	}
+	"basic attribute" {
+		clr=14
+	}
+	textix="Suppress"
+	align="horiz. right"
+}
+text {
+	object {
+		x=10
+		y=408
+		width=100
+		height=18
+	}
+	"basic attribute" {
+		clr=14
+	}
+	textix="Request Read"
+	align="horiz. right"
+}
+composite {
+	object {
+		x=5
+		y=250
+		width=330
+		height=51
+	}
+	"composite name"=""
+	children {
+		"text entry" {
+			object {
+				x=135
+				y=255
+				width=200
+				height=20
+			}
+			control {
+				chan="$(P)alive.AHOST"
+				clr=14
+				bclr=51
+			}
+			limits {
+			}
+		}
+		"text entry" {
+			object {
+				x=275
+				y=280
+				width=60
+				height=20
+			}
+			control {
+				chan="$(P)alive.APORT"
+				clr=14
+				bclr=51
+			}
+			limits {
+			}
+		}
+		text {
+			object {
+				x=10
+				y=255
+				width=110
+				height=20
+			}
+			"basic attribute" {
+				clr=14
+			}
+			textix="Aux. Host"
+			align="horiz. right"
+		}
+		"text update" {
+			object {
+				x=75
+				y=280
+				width=150
+				height=20
+			}
+			monitor {
+				chan="$(P)alive.AADDR"
+				clr=14
+				bclr=55
+			}
+			align="horiz. centered"
+			limits {
+			}
+		}
+		polyline {
+			object {
+				x=5
+				y=250
+				width=325
+				height=1
+			}
+			"basic attribute" {
+				clr=14
+				width=1
+			}
+			points {
+				(5,250)
+				(329,250)
+			}
+		}
+		text {
+			object {
+				x=235
+				y=283
+				width=35
+				height=18
+			}
+			"basic attribute" {
+				clr=14
+			}
+			textix="Port"
+			align="horiz. right"
+		}
+		text {
+			object {
+				x=15
+				y=283
+				width=55
+				height=18
+			}
+			"basic attribute" {
+				clr=14
+			}
+			textix="Address"
+			align="horiz. right"
+		}
+	}
+}
+"text update" {
+	object {
+		x=160
+		y=305
+		width=120
+		height=20
+	}
+	monitor {
+		chan="$(P)alive.ARSTS"
+		clr=14
+		bclr=55
+	}
+	limits {
+	}
+}
+text {
+	object {
+		x=55
+		y=308
+		width=100
+		height=18
+	}
+	"basic attribute" {
+		clr=14
+	}
+	textix="Read Status"
+	align="horiz. right"
+}
+"message button" {
+	object {
+		x=120
+		y=405
+		width=60
+		height=20
+	}
+	control {
+		chan="$(P)alive.ITRIG"
+		clr=0
+		bclr=34
+	}
+	label="Trigger"
+	press_msg="1"
 }

@@ -137,16 +137,12 @@
       </li>
     </ul>
 
-    <h2>Checking to see if record works</h2>
+    <h2>Checking to see if record is talking to a remote server</h2>
 
     <ul>
       <li>
         Configure an alive record to talk to a remote server daemon
         that understands how to talk to this type of record.
-      </li>
-      <li>
-        Make sure that IPSTS gets set to "Operable", otherwise the
-        information port is not working.
       </li>
       <li>
         Make sure that RADDR has the correct IPv4 address in it, as
@@ -156,15 +152,27 @@
         address in AADR.
       </li>
       <li>
+        Make sure that IPSTS is set by the record to "Operable",
+        otherwise the information port is not working.
+      </li>
+      <li>
         Make sure that the HRTBT field is set to "On" (the default).
       </li>
       <li>
         Make sure that the ISUP field is set to "Off" (the default).
       </li>
       <li>
-        Set ITRIG field to "Trigger".  If ITRIG goes back to being
-        "Idle", then the remote daemon has read the boot information,
-        meaning the record is successfully talking to the daemon.
+        Check the RRSTS field to check that the read status of the
+        remote server (or ARSTS for an auxiliary server) is "Idle".
+        If so, then set ITRIG field to "Trigger"; otherwise the record
+        is already in the process of requesting a remote read.
+      </li>
+      <li>
+        If RRSTS (or ARSTS) field eventually changes to "Overdue",
+        then the remote server is either not receiving the heartbeat
+        correctly, or is not reading or able to read the TCP port at
+        value IPORT; if it eventually changes to "Idle", then the
+        connection with remote server is working correctly.
       </li>
     </ul>
 

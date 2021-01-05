@@ -59,10 +59,11 @@
       The alive record does not process normally, as most of what it
       does is done in two threads separate from normal record
       processing.  One thread will send UDP heartbeats
-      every <strong>HPRD</strong> seconds to a remote server, while
-      the other listens for connections from the remote server.  When
-      the record actually does process, the current heartbeat that was
-      last sent to the remote server is returned as
+      every <strong>HPRD</strong> seconds to a main remote server and
+      optionally an auxiliary server, while the other thread listens
+      for connections from the remote server(s).  When the record
+      actually does process, the current heartbeat count is returned
+      as
       <strong>VAL</strong>.
     </p>
     <p>
@@ -134,11 +135,22 @@
     <p>
       The send a trigger flag to the remote server, signaling that it
       should reread the boot information, <strong>ITRIG</strong>
-      should be set to "Trigger".  When the variables have been read,
-      it will return to "Idle".  This is also a way to tell that the
-      remote server is working correctly, as going back to "Idle"
-      means that the remote server has done a read, therefore the
-      communication between the record and server works.
+      should be set to "Trigger", after which the record will change
+      it back to "Idle".  If triggered, the record will let the remote
+      servers that they need to read information from the TCP server
+      port, and the status of these reads are held in
+      the <strong>RRSTS</strong> (main server)
+      and <strong>ARSTS</strong> (auxiliary server) fields.  The
+      values are: "Idle", "Queued", "Due", and "Overdue".  "Idle"
+      means that no read is expected, "Queued" means that the record
+      will send the read request on the next heartbeat, "Due" means
+      that a request was sent on the last heartbeat, and "Overdue"
+      means that a request was sent multiple heartbeats ago.  If the
+      server is working correctly, "Overdue" should not eventually
+      appear after "Queued"; for a successful read "Due", will
+      probably not be seen as the typical response is so fast.  Aside
+      from the trigger, modifying any allowable field value will
+      trigger a read from the servers.
     </p>
     <p>
       If one wants to suppress the server reading the boot
@@ -211,7 +223,7 @@
         <td>RADDR</td>
         <td>Remote Host IP Address</td>
         <td>STRING</td>
-        <td>Yes</td>
+        <td>No</td>
         <td>&nbsp;</td>
         <td>Yes</td>
         <td>No</td>
@@ -225,6 +237,18 @@
         <td>USHORT</td>
         <td>Yes</td>
         <td>0</td>
+        <td>Yes</td>
+        <td>No</td>
+        <td>No</td>
+        <td>No</td>
+      </tr>
+
+      <tr>
+        <td>RRSTS</td>
+        <td>Remote Host Read Status</td>
+        <td>Menu: Idle/Queued/Due/Overdue</td>
+        <td>Yes</td>
+        <td>Idle</td>
         <td>Yes</td>
         <td>No</td>
         <td>No</td>
@@ -247,7 +271,7 @@
         <td>AADDR</td>
         <td>Auxiliary Remote Host IP Address</td>
         <td>STRING</td>
-        <td>Yes</td>
+        <td>No</td>
         <td>&nbsp;</td>
         <td>Yes</td>
         <td>No</td>
@@ -264,6 +288,18 @@
         <td>Yes</td>
         <td>Yes</td>
         <td>Yes</td>
+        <td>No</td>
+      </tr>
+
+      <tr>
+        <td>ARSTS</td>
+        <td>Auxiliary Remote Host Read Status</td>
+        <td>Menu: Idle/Queued/Due/Overdue</td>
+        <td>Yes</td>
+        <td>Idle</td>
+        <td>Yes</td>
+        <td>No</td>
+        <td>No</td>
         <td>No</td>
       </tr>
 
@@ -464,20 +500,24 @@
       The current time is recorded as the IOC boot time. A UDP socket
       is opened for sending heartbeat messages. An address structure
       for the remote server is initialized,
-      using <strong>RHOST</strong> and <strong>RPORT</strong>. The
-      name of the IOC is read from the "IOC" environment variable.
+      using <strong>RHOST</strong> and <strong>RPORT</strong>, with
+      the numeric IP address put into <strong>RADDR</strong>. The name
+      of the IOC is read from the <strong>IOCNM</strong> field, and if
+      that is empty, from the "IOC" environment variable.
     </p>
     <p>
       A thread is spawned for accepting TCP requests from the remote
-      server on port <strong>IPORT</strong>, and if the port value is
+      server on port <strong>IPORT</strong>; if this port value is
       zero, the record will get an automatically assigned port,
       updating
-      <strong>IPORT</strong> with the actual value.  The TCP port will
-      only accept requests from the IP address specified
-      in <strong>RHOST</strong>, and as long as <strong>ISUP</strong>
-      is Off.  The message sent back upon request is a list of the
-      specified environment variables, the IOC type, and the data
-      special to that type.
+      <strong>IPORT</strong> with the actual value.  The success of
+      opening this port can be seen with <strong>IPSTS</strong>.  The
+      TCP port will only accept requests from the IP address specified
+      in <strong>RADDR</strong> (or <strong>AADDR</strong> if an
+      auxiliary server is in use), and as long
+      as <strong>ISUP</strong> is Off.  The message sent back upon
+      request is a list of the specified environment variables, the
+      IOC type, and the data special to that type.
     </p>
     <p>
       If the <strong>HPRD</strong> is initially zero, then it is
