@@ -14,7 +14,7 @@ aliveTest_SRCS += aliveTest.cpp
 aliveTest_SRCS += aliveTest_registerRecordDeviceDriver.cpp
 testHarness_SRCS += aliveTest.cpp
 testHarness_SRCS += aliveTest_registerRecordDeviceDriver.cpp
-TESTFILES += $(COMMON_DIR)/aliveTest.db ../aliveTest.db
+TESTFILES += $(COMMON_DIR)/aliveTest.dbd ../aliveTest.db
 TESTS += aliveTest
 
 testHarness_SRCS += runTests.cpp

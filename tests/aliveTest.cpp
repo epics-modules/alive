@@ -31,46 +31,23 @@
 #include <string>
 #include <sstream>
 
+
+
 extern "C" {
     int aliveTest_registerRecordDeviceDriver(struct dbBase *pdbbase);
 }
 
-static dbEventCtx evtctx;
-
-extern "C" {
-static void aliveTestCleanup(void* junk)
-{
-    dbFreeBase(pdbbase);
-    registryFree();
-    pdbbase=0;
-
-    db_close_events(evtctx);
-}
-}
-
 void startIOC()
 {
-	std::stringstream join;
-	std::string path1;
+	testdbPrepare();
 	
-	join << "." << OSI_PATH_LIST_SEPARATOR << ".." << OSI_PATH_LIST_SEPARATOR << "../O.Common" << OSI_PATH_LIST_SEPARATOR << "O.Common";
-	join >> path1;
-	
-	dbReadDatabase(&pdbbase, "aliveTest.dbd", path1.c_str(), NULL);
+	testdbReadDatabase("aliveTest.dbd", NULL, NULL);
 			
 	aliveTest_registerRecordDeviceDriver(pdbbase);
 	
-	std::string path2;
+	testdbReadDatabase("aliveTest.db", NULL, NULL);
 	
-	join << "." << OSI_PATH_LIST_SEPARATOR << "..";
-	join >> path2;
-	
-	dbReadDatabase(&pdbbase, "aliveTest.db", path2.c_str(), NULL);
-	
-	epicsAtExit(&aliveTestCleanup, NULL);
-	
-    iocInit();
-    evtctx = db_init_events();
+    testIocInitOk();
 }
 
 void testRecv(SOCKET& receiver, char buffer[])
@@ -190,6 +167,9 @@ MAIN(aliveTest)
 	testReturn(buffer);
 	testMessage(buffer);
 	testName(buffer);
+	
+	testIocShutdownOk();
+	testdbCleanup();
 	
 	return testDone();
 }
