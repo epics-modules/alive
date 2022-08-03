@@ -1,4 +1,4 @@
-[![Build Status](https://travis-ci.org/epics-modules/alive.svg?branch=master)](https://travis-ci.org/epics-modules/alive)
+[![ALIVE](https://github.com/epics-modules/alive/actions/workflows/ci-scripts-build.yml/badge.svg)](https://github.com/epics-modules/alive/actions/workflows/ci-scripts-build.yml)
 
 # alive
 APS BCDA [synApps](http://www.aps.anl.gov/bcda/synApps) module: alive
