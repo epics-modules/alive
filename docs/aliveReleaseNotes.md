@@ -1,127 +1,74 @@
-<!DOCTYPE html>
-<html>
-  <head>
-    <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
-    <title>aliveReleaseNotes</title>
-  </head>
-  <body>
+---
+layout: default
+title: Release Notes
+nav_order: 3
+---
 
-    <h1 align="center" style="margin-bottom:1.5em">alive Module Release Notes</h1>
 
-    <h2 align="center">Release 1-4-0</h2>
+alive Module Release Notes
+==========================
 
-    <p>
-      Added <b>RRSTS</b> and <b>ARSTS</b> to show the read status from
-      the main and auxiliary remote servers.  These can be used to
-      check for a connection problem between the servers and the record.
-    </p>
+Release 1-4-0
+-------------
 
-    <p>
-      Altered <b>ITRIG</b> field to work solely as a trigger and not
-      imply a status change with its value.  Its value will
-      immediately return to "Idle" after being set to "Trigger".
-    </p>
-    
-    <h2 align="center">Release 1-3-1</h2>
+ Added __RRSTS__ and __ARSTS__ to show the read status from the main and auxiliary remote servers. These can be used to check for a connection problem between the servers and the record.
 
-    <p>
-      Added mentions about the new github repository for the BCDA alive
-      server, <a href="https://github.com/epics-alive-server/alived">alived</a>.
-    </p>
+ Altered __ITRIG__ field to work solely as a trigger and not imply a status change with its value. Its value will immediately return to "Idle" after being set to "Trigger".
 
-    <h2 align="center">Release 1-3-0</h2>
+Release 1-3-1
+-------------
 
-    <p>
-      Added <b>AHOST</b>, <b>APORT</b>, and <b>AADR</b> in order to
-      allow duplicate heartbeats to be sent to an auxiliary server.
-      This can be used for testing purposes or server backup.
-    </p>
+ Added mentions about the new github repository for the BCDA alive server, [alived](https://github.com/epics-alive-server/alived).
 
-    <p>
-      Made <b>RHOST</b>, <b>RPORT</b>, and <b>HMAG</b> all read-only
-      to help make sure that record doesn't stop sending correct
-      heartbeats to the server.
-    </p>
+Release 1-3-0
+-------------
 
-    <p>
-      Removed <b>NMVAR</b>, as it is redundant to simply using an
-      environment variable to directly set <b>IOCNM</b>.
-    </p>
-    
-    <h2 align="center">Release 1-2-1</h2>
-    
-    <p>
-      Added <i>CONSOLE_INFO</i> as <b>EVDxx</b> default.
-    </p>
+ Added __AHOST__, __APORT__, and __AADR__ in order to allow duplicate heartbeats to be sent to an auxiliary server. This can be used for testing purposes or server backup.
 
-    <p>
-      Fixed compilation issue for non-gcc compilers.
-    </p>
-    
-    <h2 align="center">Release 1-2-0</h2>
+ Made __RHOST__, __RPORT__, and __HMAG__ all read-only to help make sure that record doesn't stop sending correct heartbeats to the server.
 
-    <p>
-      Allow <b>RHOST</b> to be a name, and not just a numeric IP
-      address.  Added <b>RADDR</b> to contain the resulting IP address
-      found, or state that the <b>RHOST</b> value is invalid.
-    </p>
-    <p>
-      Changed the name of the <b>ENVxx</b> fields to <b>EVxx</b>.
-    </p>
-    <p>
-      Added 16 <b>EVDxx</b> fields, similar to <b>EVxx</b> fields,
-      which are default environment variables that are unchangeable
-      after boot.
-    </p>
-    <p>
-      Moved the default environment variables in <i>alive.db</i> from
-      the renamed <b>ENVxx</b> fields to the new <b>EVDxx</b>
-      fields. Added
-      <i>STY</i> and <i>PROCSERV_INFO</i> as <b>EVDxx</b>
-      defaults.
-    </p>
-  
-    <h2 align="center">Release 1-1-1</h2>
+ Removed __NMVAR__, as it is redundant to simply using an environment variable to directly set __IOCNM__.
 
-    <p>
-      Minor configuration file changes.
-    </p>
-    
-    <h2 align="center">Release 1-1-0</h2>
+Release 1-2-1
+-------------
 
-    <p>
-      Added a field <b>IOCNM</b> which shows the IOC name that is sent
-      to the remote server.  If this value is set directly, then this
-      is the value used, otherwise it is found using the <b>NMVAR</b>
-      field.
-    </p>
-    <p>
-      Added a field <b>NMVAR</b> to define the environment variable
-      that defines the IOC's name, with it defaulting to IOC.
-    </p>
-    <p>
-      Added a new database, <i>aliveMSGCalc.db</i>, which creates a
-      calcout that writes into alive record's <b>MSG</b> field
-      automatically, based on available synApps error messages.
-      Currently, it is only using an autosave error PV as input.
-    </p>
+ Added *CONSOLE\_INFO* as __EVDxx__ default.
 
-    <h2 align="center">Release 1-0-1</h2>
+ Fixed compilation issue for non-gcc compilers.
 
-    <p>
-      Changed number of ENVxx PV fields from 10 to 16.
-    </p>
-    <p>
-      Windows build fixes from other BCDA staff added.
-    </p>
+Release 1-2-0
+-------------
 
-    <h2 align="center">Release 1-0-0</h2>
+ Allow __RHOST__ to be a name, and not just a numeric IP address. Added __RADDR__ to contain the resulting IP address found, or state that the __RHOST__ value is invalid.
 
-    <p>
-      This is the first release of the synApps alive module.  It was
-      developed using EPICS base 3.14.12, but earlier 3.14 releases
-      should probably work.
-    </p>
+ Changed the name of the __ENVxx__ fields to __EVxx__.
 
-  </body>
-</html>
+ Added 16 __EVDxx__ fields, similar to __EVxx__ fields, which are default environment variables that are unchangeable after boot.
+
+ Moved the default environment variables in *alive.db* from the renamed __ENVxx__ fields to the new __EVDxx__ fields. Added *STY* and *PROCSERV\_INFO* as __EVDxx__ defaults.
+
+Release 1-1-1
+-------------
+
+ Minor configuration file changes.
+
+Release 1-1-0
+-------------
+
+ Added a field __IOCNM__ which shows the IOC name that is sent to the remote server. If this value is set directly, then this is the value used, otherwise it is found using the __NMVAR__ field.
+
+ Added a field __NMVAR__ to define the environment variable that defines the IOC's name, with it defaulting to IOC.
+
+ Added a new database, *aliveMSGCalc.db*, which creates a calcout that writes into alive record's __MSG__ field automatically, based on available synApps error messages. Currently, it is only using an autosave error PV as input.
+
+Release 1-0-1
+-------------
+
+ Changed number of ENVxx PV fields from 10 to 16.
+
+ Windows build fixes from other BCDA staff added.
+
+Release 1-0-0
+-------------
+
+ This is the first release of the synApps alive module. It was developed using EPICS base 3.14.12, but earlier 3.14 releases should probably work.

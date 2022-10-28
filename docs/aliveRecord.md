@@ -1,907 +1,174 @@
-<!DOCTYPE html>
-<html>
-  <head>
-    <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
-    <title>aliveRecord</title>
-    <style>
-      td, th { padding:5px; }
-    </style>
-  </head>
-  <body>
-    
-    <h1 align="center">alive Record</h1>
-
-    <p align="center" style="font-size: 1.4em;margin-bottom:1.5em">Dohn Arms</p>
-
-   
-    <h1>1. Introduction</h1>
-
-    <p>
-      The alive record is intended as a way to allow verification that
-      an IOC is running.  It is an active system, using heartbeat
-      messages sent to a central server (such
-      as <a href="https://github.com/epics-alive-server/alived">alived</a>),
-      which collects heartbeat messages and monitors the IOC statuses.
-      The alive record also allows for the server to query extra
-      information of the IOC, being environment variables (specified
-      in the record) and system specific information (vxWorks boot
-      line, Linux user, etc.)
-    </p>
-    <p>
-      This system has several important consequences.  The server
-      doesn't need to know which IOCs to monitor, as they will
-      self-report themselves upon running a correctly configured alive
-      record.  The reading of the boot information also allows for
-      real-time knowledge of the IOC type and boot parameters.  The
-      monitoring of IOCs is intended to be outside of EPICS itself, so
-      there is no needing to link EPICS libraries.  EPICS network
-      boundary issues with subnets are avoided, as the heartbeat
-      messages are sent as simple UDP packets and the extra
-      information is done with a TCP request from the remote server.
-    </p>
-    <p>
-      This record could be extended to monitor real-time parameters
-      (such as memory use, etc.), but that is not what this record is
-      intended for.  Once a system is known to be up, one should use
-      typical EPICS methods for these things (like devIocStats).
-      However, there is the 32-bit
-      <strong>MSG</strong> field ("Message Value" on the screen) which
-      can be used to send messages as defined by the user.
-    </p>
-
-    <img src="aliveRecord.png">&nbsp;&nbsp;&nbsp;
-    <img src="aliveRecordEnvVars.png">
-
-    <p><hr>
-      <h1>2. Operation</h1>
-
-    <p>
-      The alive record does not process normally, as most of what it
-      does is done in two threads separate from normal record
-      processing.  One thread will send UDP heartbeats
-      every <strong>HPRD</strong> seconds to a main remote server and
-      optionally an auxiliary server, while the other thread listens
-      for connections from the remote server(s).  When the record
-      actually does process, the current heartbeat count is returned
-      as
-      <strong>VAL</strong>.
-    </p>
-    <p>
-      The default heartbeat period is 15 seconds, which allows for
-      declaring failure after a minute, if using four missing
-      hearbeats as the condition.  The heartbeating can be turned by
-      setting
-      <strong>HRTBT</strong> to "Off".
-    </p>
-
-    <p><hr>
-      <h1>3. Record Fields</h1>
-      
-    <p>
-      The <strong>VAL</strong> field holds the current heartbeat value
-      (initially zero), and is incremented each time a UDP heartbeat
-      is sent, every <strong>HPRD</strong> seconds, assuming
-      <strong>HRTBT</strong> is set to "On".
-    </p>
-    <p>
-      The heartbeat UDP packets are sent to a remote server using
-      the <strong>RHOST</strong> and <strong>RPORT</strong> fields to
-      specify address and port. The <strong>RHOST</strong> can be a
-      name or an IPv4 numeric address; the resulting IPv4 address is
-      found in the <strong>RADDR</strong> field.
-    </p>
-    <p>
-      The heartbeat packets can optionally also be sent to an
-      auxiliary remote server, for purposes of server testing or
-      backup.  This feature uses the <strong>AHOST</strong>
-      and <strong>APORT</strong> fields to specify address and port,
-      and can be changed while the IOC is running.  A valid name or an
-      IPv4 numeric address <strong>AHOST</strong> enables this
-      feature, and the resulting IPv4 address is found in
-      the <strong>AADDR</strong> field, unless there was an error and
-      then "invalid AHOST" will be found instead.
-    </p>
-    <p>
-      The IOC's actual name as reported to the remote server is
-      contained in the <strong>IOCNM</strong>
-      field.  <strong>IOCNM</strong> can be directly set at boot time
-      with a static value or an environment variable; if left empty,
-      then the name will taken by the "IOC" environment variable.  The
-      server may employ a magic number to help filter out unwanted UDP
-      packets sent to it, and this number is specified in
-      the <strong>HMAG</strong> field, and is the first thing sent in
-      the heartbeat message; the default corresponds to 0x12345678.
-      There is a 32-bit field that can be used to send a user-defined
-      message to the server, <strong>MSG</strong>, and its usage is
-      left up to the implementer.
-    </p>
-    <p>
-      Unless suppressed, the remote server can attempt to read back
-      the environment variables and other information using the TCP
-      port specified by <strong>IPORT</strong>.  If initialized to 0,
-      an available port will be found and its value placed this field,
-      otherwise any nonzero value will be attempted.  If multiple IOCs
-      are on the same IP address, each alive record needs to use a
-      unique port, which is taken care of automatically if all are
-      initialized to 0.  It should be noted that <em>only</em>
-      connections originating from <strong>RHOST</strong> will be
-      allowed to connect this way.  The status of the port can be
-      found with <strong>IPSTS</strong>, which has three values set by
-      the record: "Undetermined", which is the initial value;
-      "Operable", meaning that the port was successfully opened; and
-      "Inoperable", which means that there was a failure in opening
-      the port.  This field is to help debug use of the record.
-    </p>
-    <p>
-      The send a trigger flag to the remote server, signaling that it
-      should reread the boot information, <strong>ITRIG</strong>
-      should be set to "Trigger", after which the record will change
-      it back to "Idle".  If triggered, the record will let the remote
-      servers that they need to read information from the TCP server
-      port, and the status of these reads are held in
-      the <strong>RRSTS</strong> (main server)
-      and <strong>ARSTS</strong> (auxiliary server) fields.  The
-      values are: "Idle", "Queued", "Due", and "Overdue".  "Idle"
-      means that no read is expected, "Queued" means that the record
-      will send the read request on the next heartbeat, "Due" means
-      that a request was sent on the last heartbeat, and "Overdue"
-      means that a request was sent multiple heartbeats ago.  If the
-      server is working correctly, "Overdue" should not eventually
-      appear after "Queued"; for a successful read "Due", will
-      probably not be seen as the typical response is so fast.  Aside
-      from the trigger, modifying any allowable field value will
-      trigger a read from the servers.
-    </p>
-    <p>
-      If one wants to suppress the server reading the boot
-      information, <strong>ISUP</strong> should be set to "On"; the
-      record sends a suppress flag to the server, and will immediately
-      close all connection that occur.  This is useful if the IOC is
-      behind a firewall that won't allow a direct TCP connection,
-      telling the server to not endlessly try to read.
-    </p>
-    <p>
-      Names of the environment variables to be sent to the remote
-      server upon request
-      are <strong>EVD1</strong>-<strong>EVD16</strong>
-      and <strong>EV1</strong>-<strong>EV16</strong>.  If the length
-      of the value of a variable is over 65535, an empty string will
-      be sent back.  The <strong>EVD</strong> variables are set as
-      defaults that aren't changed after boot, while
-      the <strong>EV</strong> variables are available to be used after
-      boot.  This separation allows global defaults to be set for all
-      IOCs, while allowing variables to be added locally with
-      disregard to the defaults.
-    </p>
-    <p>
-      The release version number of the record is kept in
-      <strong>VER</strong> as a string, in the form of "X-Y-Z".  A
-      development version will have a string in the form of
-      "X-Y-Z-devA".
-    </p>
+---
+layout: default
+title: Alive Record
+nav_order: 2
+---
 
 
+alive Record
+============
 
-    <table border>
-      <tr>
-        <th>Field</th>
-        <th>Summary</th>
-        <th>Type</th>
-        <th>DCT</th>
-        <th>Initial</th>
-        <th>Access</th>
-        <th>Modify</th>
-        <th>Rec Proc Monitor</th>
-        <th>PP</th>
-      </tr>
+Dohn Arms
 
-      <tr>
-        <td>VAL</td>
-        <td>Heartbeat Value</td>
-        <td>ULONG</td>
-        <td>No</td>
-        <td>0</td>
-        <td>Yes</td>
-        <td>No</td>
-        <td>No</td>
-        <td>No</td>
-      </tr>
+1. Introduction
+===============
 
-      <tr>
-        <td>RHOST</td>
-        <td>Remote Host Name or IP Address</td>
-        <td>STRING</td>
-        <td>Yes</td>
-        <td>&nbsp;</td>
-        <td>Yes</td>
-        <td>No</td>
-        <td>No</td>
-        <td>No</td>
-      </tr>
+ The alive record is intended as a way to allow verification that an IOC is running. It is an active system, using heartbeat messages sent to a central server (such as [alived](https://github.com/epics-alive-server/alived)), which collects heartbeat messages and monitors the IOC statuses. The alive record also allows for the server to query extra information of the IOC, being environment variables (specified in the record) and system specific information (vxWorks boot line, Linux user, etc.)
 
-      <tr>
-        <td>RADDR</td>
-        <td>Remote Host IP Address</td>
-        <td>STRING</td>
-        <td>No</td>
-        <td>&nbsp;</td>
-        <td>Yes</td>
-        <td>No</td>
-        <td>No</td>
-        <td>No</td>
-      </tr>
+ This system has several important consequences. The server doesn't need to know which IOCs to monitor, as they will self-report themselves upon running a correctly configured alive record. The reading of the boot information also allows for real-time knowledge of the IOC type and boot parameters. The monitoring of IOCs is intended to be outside of EPICS itself, so there is no needing to link EPICS libraries. EPICS network boundary issues with subnets are avoided, as the heartbeat messages are sent as simple UDP packets and the extra information is done with a TCP request from the remote server.
 
-      <tr>
-        <td>RPORT</td>
-        <td>Remote Host UDP Port Number</td>
-        <td>USHORT</td>
-        <td>Yes</td>
-        <td>0</td>
-        <td>Yes</td>
-        <td>No</td>
-        <td>No</td>
-        <td>No</td>
-      </tr>
+ This record could be extended to monitor real-time parameters (such as memory use, etc.), but that is not what this record is intended for. Once a system is known to be up, one should use typical EPICS methods for these things (like devIocStats). However, there is the 32-bit __MSG__ field ("Message Value" on the screen) which can be used to send messages as defined by the user.
 
-      <tr>
-        <td>RRSTS</td>
-        <td>Remote Host Read Status</td>
-        <td>Menu: Idle/Queued/Due/Overdue</td>
-        <td>Yes</td>
-        <td>Idle</td>
-        <td>Yes</td>
-        <td>No</td>
-        <td>No</td>
-        <td>No</td>
-      </tr>
+ ![](aliveRecord.png) ![](aliveRecordEnvVars.png)- - - - - -
 
-      <tr>
-        <td>AHOST</td>
-        <td>Auxiliary Remote Host Name or IP Address</td>
-        <td>STRING</td>
-        <td>Yes</td>
-        <td>&nbsp;</td>
-        <td>Yes</td>
-        <td>Yes</td>
-        <td>Yes</td>
-        <td>No</td>
-      </tr>
+2. Operation
+============
 
-      <tr>
-        <td>AADDR</td>
-        <td>Auxiliary Remote Host IP Address</td>
-        <td>STRING</td>
-        <td>No</td>
-        <td>&nbsp;</td>
-        <td>Yes</td>
-        <td>No</td>
-        <td>No</td>
-        <td>No</td>
-      </tr>
+ The alive record does not process normally, as most of what it does is done in two threads separate from normal record processing. One thread will send UDP heartbeats every __HPRD__ seconds to a main remote server and optionally an auxiliary server, while the other thread listens for connections from the remote server(s). When the record actually does process, the current heartbeat count is returned as __VAL__.
 
-      <tr>
-        <td>APORT</td>
-        <td>Auxiliary Remote Host UDP Port Number</td>
-        <td>USHORT</td>
-        <td>Yes</td>
-        <td>0</td>
-        <td>Yes</td>
-        <td>Yes</td>
-        <td>Yes</td>
-        <td>No</td>
-      </tr>
+ The default heartbeat period is 15 seconds, which allows for declaring failure after a minute, if using four missing hearbeats as the condition. The heartbeating can be turned by setting __HRTBT__ to "Off".
 
-      <tr>
-        <td>ARSTS</td>
-        <td>Auxiliary Remote Host Read Status</td>
-        <td>Menu: Idle/Queued/Due/Overdue</td>
-        <td>Yes</td>
-        <td>Idle</td>
-        <td>Yes</td>
-        <td>No</td>
-        <td>No</td>
-        <td>No</td>
-      </tr>
+- - - - - -
 
-      <tr>
-        <td>HRTBT</td>
-        <td>Heartbeating State</td>
-        <td>Menu: Off/On</td>
-        <td>Yes</td>
-        <td>On</td>
-        <td>Yes</td>
-        <td>Yes</td>
-        <td>Yes</td>
-        <td>No</td>
-      </tr>
+3. Record Fields
+================
 
-      <tr>
-        <td>HPRD</td>
-        <td>Heartbeat Period</td>
-        <td>USHORT</td>
-        <td>Yes</td>
-        <td>15</td>
-        <td>Yes</td>
-        <td>No</td>
-        <td>No</td>
-        <td>No</td>
-      </tr>
+ The __VAL__ field holds the current heartbeat value (initially zero), and is incremented each time a UDP heartbeat is sent, every __HPRD__ seconds, assuming __HRTBT__ is set to "On".
 
-      <tr>
-        <td>IOCNM</td>
-        <td>IOC Name Value</td>
-        <td>STRING</td>
-        <td>Yes</td>
-        <td>&nbsp;</td>
-        <td>Yes</td>
-        <td>No</td>
-        <td>No</td>
-        <td>No</td>
-      </tr>
+ The heartbeat UDP packets are sent to a remote server using the __RHOST__ and __RPORT__ fields to specify address and port. The __RHOST__ can be a name or an IPv4 numeric address; the resulting IPv4 address is found in the __RADDR__ field.
 
-      <tr>
-        <td>HMAG</td>
-        <td>Heartbeat Magic Number</td>
-        <td>ULONG</td>
-        <td>Yes</td>
-        <td>305419896</td>
-        <td>Yes</td>
-        <td>No</td>
-        <td>No</td>
-        <td>No</td>
-      </tr>
+ The heartbeat packets can optionally also be sent to an auxiliary remote server, for purposes of server testing or backup. This feature uses the __AHOST__ and __APORT__ fields to specify address and port, and can be changed while the IOC is running. A valid name or an IPv4 numeric address __AHOST__ enables this feature, and the resulting IPv4 address is found in the __AADDR__ field, unless there was an error and then "invalid AHOST" will be found instead.
 
-      <tr>
-        <td>MSG</td>
-        <td>Message to Send</td>
-        <td>LONG</td>
-        <td>Yes</td>
-        <td>0</td>
-        <td>Yes</td>
-        <td>Yes</td>
-        <td>No</td>
-        <td>No</td>
-      </tr>
+ The IOC's actual name as reported to the remote server is contained in the __IOCNM__ field. __IOCNM__ can be directly set at boot time with a static value or an environment variable; if left empty, then the name will taken by the "IOC" environment variable. The server may employ a magic number to help filter out unwanted UDP packets sent to it, and this number is specified in the __HMAG__ field, and is the first thing sent in the heartbeat message; the default corresponds to 0x12345678. There is a 32-bit field that can be used to send a user-defined message to the server, __MSG__, and its usage is left up to the implementer.
 
-      <tr>
-        <td>IPORT</td>
-        <td>TCP Information Port Number</td>
-        <td>USHORT</td>
-        <td>Yes</td>
-        <td>0</td>
-        <td>Yes</td>
-        <td>No</td>
-        <td>No</td>
-        <td>No</td>
-      </tr>
+ Unless suppressed, the remote server can attempt to read back the environment variables and other information using the TCP port specified by __IPORT__. If initialized to 0, an available port will be found and its value placed this field, otherwise any nonzero value will be attempted. If multiple IOCs are on the same IP address, each alive record needs to use a unique port, which is taken care of automatically if all are initialized to 0. It should be noted that *only* connections originating from __RHOST__ will be allowed to connect this way. The status of the port can be found with __IPSTS__, which has three values set by the record: "Undetermined", which is the initial value; "Operable", meaning that the port was successfully opened; and "Inoperable", which means that there was a failure in opening the port. This field is to help debug use of the record.
 
-      <tr>
-        <td>IPSTS</td>
-        <td>Information Port Status</td>
-        <td>Menu: Undetermined/Operable/Inoperable</td>
-        <td>Yes</td>
-        <td>Undetermined</td>
-        <td>Yes</td>
-        <td>No</td>
-        <td>Yes</td>
-        <td>No</td>
-      </tr>
+ The send a trigger flag to the remote server, signaling that it should reread the boot information, __ITRIG__ should be set to "Trigger", after which the record will change it back to "Idle". If triggered, the record will let the remote servers that they need to read information from the TCP server port, and the status of these reads are held in the __RRSTS__ (main server) and __ARSTS__ (auxiliary server) fields. The values are: "Idle", "Queued", "Due", and "Overdue". "Idle" means that no read is expected, "Queued" means that the record will send the read request on the next heartbeat, "Due" means that a request was sent on the last heartbeat, and "Overdue" means that a request was sent multiple heartbeats ago. If the server is working correctly, "Overdue" should not eventually appear after "Queued"; for a successful read "Due", will probably not be seen as the typical response is so fast. Aside from the trigger, modifying any allowable field value will trigger a read from the servers.
 
-      <tr>
-        <td>ITRIG</td>
-        <td>Trigger Information Request</td>
-        <td>Menu: Idle/Trigger</td>
-        <td>Yes</td>
-        <td>Idle</td>
-        <td>Yes</td>
-        <td>Yes</td>
-        <td>Yes</td>
-        <td>No</td>
-      </tr>
+ If one wants to suppress the server reading the boot information, __ISUP__ should be set to "On"; the record sends a suppress flag to the server, and will immediately close all connection that occur. This is useful if the IOC is behind a firewall that won't allow a direct TCP connection, telling the server to not endlessly try to read.
 
-      <tr>
-        <td>ISUP</td>
-        <td>Suppress Information Requests</td>
-        <td>Menu: Off/On</td>
-        <td>Yes</td>
-        <td>Off</td>
-        <td>Yes</td>
-        <td>Yes</td>
-        <td>Yes</td>
-        <td>No</td>
-      </tr>
+ Names of the environment variables to be sent to the remote server upon request are __EVD1__-__EVD16__ and __EV1__-__EV16__. If the length of the value of a variable is over 65535, an empty string will be sent back. The __EVD__ variables are set as defaults that aren't changed after boot, while the __EV__ variables are available to be used after boot. This separation allows global defaults to be set for all IOCs, while allowing variables to be added locally with disregard to the defaults.
 
-      <tr>
-        <td>VER</td>
-        <td>Record Version</td>
-        <td>STRING</td>
-        <td>Yes</td>
-        <td>&nbsp;</td>
-        <td>Yes</td>
-        <td>No</td>
-        <td>No</td>
-        <td>No</td>
-      </tr>
+ The release version number of the record is kept in __VER__ as a string, in the form of "X-Y-Z". A development version will have a string in the form of "X-Y-Z-devA".
 
-      <tr>
-        <td>EVD1</td>
-        <td>Default Environment Variable Name 1</td>
-        <td>STRING</td>
-        <td>Yes</td>
-        <td>&nbsp;</td>
-        <td>Yes</td>
-        <td>No</td>
-        <td>No</td>
-        <td>No</td>
-      </tr>
-      <tr>
-        <td>...</td>
-        <td>...</td>
-        <td>...</td>
-        <td>...</td>
-        <td>...</td>
-        <td>...</td>
-        <td>...</td>
-        <td>...</td>
-        <td>...</td>
-      </tr>
-      <tr>
-        <td>EVD16</td>
-        <td>Default Environment Variable Name 16</td>
-        <td>STRING</td>
-        <td>Yes</td>
-        <td>&nbsp;</td>
-        <td>Yes</td>
-        <td>No</td>
-        <td>No</td>
-        <td>No</td>
-      </tr>
-      <tr>
-        <td>EV1</td>
-        <td>Environment Variable Name 1</td>
-        <td>STRING</td>
-        <td>Yes</td>
-        <td>&nbsp;</td>
-        <td>Yes</td>
-        <td>Yes</td>
-        <td>Yes</td>
-        <td>No</td>
-      </tr>
-      <tr>
-        <td>...</td>
-        <td>...</td>
-        <td>...</td>
-        <td>...</td>
-        <td>...</td>
-        <td>...</td>
-        <td>...</td>
-        <td>...</td>
-        <td>...</td>
-      </tr>
-      <tr>
-        <td>EV16</td>
-        <td>Environment Variable Name 16</td>
-        <td>STRING</td>
-        <td>Yes</td>
-        <td>&nbsp;</td>
-        <td>Yes</td>
-        <td>Yes</td>
-        <td>Yes</td>
-        <td>No</td>
-      </tr>
-    </table>
-    
+ | Field | Summary | Type | DCT | Initial | Access | Modify | Rec Proc Monitor | PP |
+|---|---|---|---|---|---|---|---|---|
+| VAL | Heartbeat Value | ULONG | No | 0 | Yes | No | No | No |
+| RHOST | Remote Host Name or IP Address | STRING | Yes |  | Yes | No | No | No |
+| RADDR | Remote Host IP Address | STRING | No |  | Yes | No | No | No |
+| RPORT | Remote Host UDP Port Number | USHORT | Yes | 0 | Yes | No | No | No |
+| RRSTS | Remote Host Read Status | Menu: Idle/Queued/Due/Overdue | Yes | Idle | Yes | No | No | No |
+| AHOST | Auxiliary Remote Host Name or IP Address | STRING | Yes |  | Yes | Yes | Yes | No |
+| AADDR | Auxiliary Remote Host IP Address | STRING | No |  | Yes | No | No | No |
+| APORT | Auxiliary Remote Host UDP Port Number | USHORT | Yes | 0 | Yes | Yes | Yes | No |
+| ARSTS | Auxiliary Remote Host Read Status | Menu: Idle/Queued/Due/Overdue | Yes | Idle | Yes | No | No | No |
+| HRTBT | Heartbeating State | Menu: Off/On | Yes | On | Yes | Yes | Yes | No |
+| HPRD | Heartbeat Period | USHORT | Yes | 15 | Yes | No | No | No |
+| IOCNM | IOC Name Value | STRING | Yes |  | Yes | No | No | No |
+| HMAG | Heartbeat Magic Number | ULONG | Yes | 305419896 | Yes | No | No | No |
+| MSG | Message to Send | LONG | Yes | 0 | Yes | Yes | No | No |
+| IPORT | TCP Information Port Number | USHORT | Yes | 0 | Yes | No | No | No |
+| IPSTS | Information Port Status | Menu: Undetermined/Operable/Inoperable | Yes | Undetermined | Yes | No | Yes | No |
+| ITRIG | Trigger Information Request | Menu: Idle/Trigger | Yes | Idle | Yes | Yes | Yes | No |
+| ISUP | Suppress Information Requests | Menu: Off/On | Yes | Off | Yes | Yes | Yes | No |
+| VER | Record Version | STRING | Yes |  | Yes | No | No | No |
+| EVD1 | Default Environment Variable Name 1 | STRING | Yes |  | Yes | No | No | No |
+| ... | ... | ... | ... | ... | ... | ... | ... | ... |
+| EVD16 | Default Environment Variable Name 16 | STRING | Yes |  | Yes | No | No | No |
+| EV1 | Environment Variable Name 1 | STRING | Yes |  | Yes | Yes | Yes | No |
+| ... | ... | ... | ... | ... | ... | ... | ... | ... |
+| EV16 | Environment Variable Name 16 | STRING | Yes |  | Yes | Yes | Yes | No |
 
-    <hr>
-    <p><h1>4. Record Support Routines</h1>
-      
-      <h3>init_record</h3>
-    <p>
-      The current time is recorded as the IOC boot time. A UDP socket
-      is opened for sending heartbeat messages. An address structure
-      for the remote server is initialized,
-      using <strong>RHOST</strong> and <strong>RPORT</strong>, with
-      the numeric IP address put into <strong>RADDR</strong>. The name
-      of the IOC is read from the <strong>IOCNM</strong> field, and if
-      that is empty, from the "IOC" environment variable.
-    </p>
-    <p>
-      A thread is spawned for accepting TCP requests from the remote
-      server on port <strong>IPORT</strong>; if this port value is
-      zero, the record will get an automatically assigned port,
-      updating
-      <strong>IPORT</strong> with the actual value.  The success of
-      opening this port can be seen with <strong>IPSTS</strong>.  The
-      TCP port will only accept requests from the IP address specified
-      in <strong>RADDR</strong> (or <strong>AADDR</strong> if an
-      auxiliary server is in use), and as long
-      as <strong>ISUP</strong> is Off.  The message sent back upon
-      request is a list of the specified environment variables, the
-      IOC type, and the data special to that type.
-    </p>
-    <p>
-      If the <strong>HPRD</strong> is initially zero, then it is
-      reassigned to the default value, which is currently 15.
-    </p>
+- - - - - -
 
-    <h3>process</h3>
-    
-    <p>
-      Nothing actually happens, other than the forward link get
-      processed.  Heartbeats are controlled purely by a timed thread.
-    </p>
+4. Record Support Routines
+==========================
 
-    <h3>special</h3>
-    
-    <p>
-      Changing the <strong>RHOST</strong> field causes a check here to
-      make sure that the string value is a properly formed IP address.
-      If not, no sending heartbeats will occur.
-    </p>
-    
-    <hr>
-    <h1>5. Message Protocol</h1>
-    
-    <p>
-      This section describes the current protocol, version
-      <strong>5</strong>. All messages sent use network order
-      (big-endian).
-    </p>
+### init\_record
 
-    <h3>Heartbeat Message</h3>
-    
-    <p>
-      This is the UDP message sent for each processing of the record.
-      The minimum size for a message payload is 30 bytes, being being
-      fixed fields of 28 bytes with a null-terminated string.  All
-      values are unsigned.
-    </p>
-    <p>
-      The time values sent are EPICS time values, which are relative
-      to 1990.  Converting them to standard Linux time values means
-      adding a value of 631152000 (20 years of seconds) to each.
-    </p>
-    <p>
+ The current time is recorded as the IOC boot time. A UDP socket is opened for sending heartbeat messages. An address structure for the remote server is initialized, using __RHOST__ and __RPORT__, with the numeric IP address put into __RADDR__. The name of the IOC is read from the __IOCNM__ field, and if that is empty, from the "IOC" environment variable.
 
-      <table border style="margin: 0; text-align: center; border-collapse:collapse">
-        <caption><strong>Heartbeat Format</strong></caption>
-        <tr>
-          <th>Offset (bytes)</th>
-          <th colspan="10">0</th>
-          <td colspan="10">1</td>
-          <td colspan="10">2</td>
-          <td colspan="10">3</td>
-          <th colspan="10">4</th>
-          <td colspan="10">5</td>
-          <th colspan="10">6</th>
-          <td colspan="10">7</td>
-          <td colspan="10">8</td>
-          <td colspan="10">9</td>
-          <th colspan="10">10</th>
-          <td colspan="10">11</td>
-          <td colspan="10">12</td>
-          <td colspan="10">13</td>
-          <th colspan="10">14</th>
-          <td colspan="10">15</td>
-          <td colspan="10">16</td>
-          <td colspan="10">17</td>
-          <th colspan="10">18</th>
-          <td colspan="10">19</td>
-          <th colspan="10">20</th>
-          <td colspan="10">21</td>
-          <th colspan="10">22</th>
-          <td colspan="10">23</td>
-          <th colspan="10">24</th>
-          <td colspan="10">25</td>
-          <td colspan="10">26</td>
-          <td colspan="10">27</td>
-          <th colspan="10">28</th>
-          <td colspan="10">...</td>
-          <td colspan="10">...</td>
-          <td colspan="10">...</td>
-          <td colspan="10">...</td>
-          <th colspan="10">28+x</th>
-        </tr>
-        <tr>
-          <th>Field</th>
-          <td colspan="40">Magic</td>
-          <td colspan="20">Version</td>
-          <td colspan="40">Incarnation</td>
-          <td colspan="40">Current Time</td>
-          <td colspan="40">Heartbeat Value</td>
-          <td colspan="20">Period</td>
-          <td colspan="20">Flags</td>
-          <td colspan="20">Return Port</td>
-          <td colspan="40">User Message</td>
-          <td colspan="50">IOC name (length <strong>x</strong>)</td>
-          <td colspan="20"><strong>0</strong></td>
-        </tr>
-      </table>
-      
-      <dl>
-        <dt><strong>Magic Number</strong> (32-bit)</dt>
-        <dd>
-          The value of this field comes form the <strong>HMAG</strong>
-          field.  It is used by the remote server to delete messages
-          received that don't start with this number.
-        </dd>
-        <dt><strong>Version of Protocol</strong> (16-bit)</dt>
-        <dd>
-          The value of this field is the current version of the
-          protocol for this record.  The remote server can handle or
-          ignore a particular version as it sees fit. If the version
-          number does not match the one that this document describes,
-          the fields after this one will most likely differ in some
-          way.
-        </dd>
-        <dt><strong>Incarnation</strong> (32-bit)</dt>
-        <dd>
-          This value is a unique number for this particular boot of
-          the IOC.  It's also the boot time as measured by the IOC,
-          which should be unique for each boot, assuming that the
-          EPICS time is correct when the record initialization
-          happens.
-        </dd>
-        <dt><strong>Current Time</strong> (32-bit)</dt>
-        <dd>
-          This is the current time as measure by the IOC.
-        </dd>
-        <dt><strong>Heartbeat Value</strong> (32-bit)</dt>
-        <dd>
-          This is the current value of the <strong>VAL</strong> field
-        </dd>
-        <dt><strong>Period</strong> (16-bit)</dt>
-        <dd>
-          This is the heartbeat period used by the alive record, which
-          is to be used for determining the operational status of the
-          IOC, and comes from <strong>HPRD</strong>.
-        </dd>
-        <dt><strong>Flags</strong> (16-bit)</dt>
-        <dd>
-          This value holds bit flags for the server. 
-          <ul>
-            <li>
-              <strong>Bit 0:</strong> Server should read the
-              environment variables, as there are updated values
-              or <strong>ITRIG</strong> was set. This will be cleared
-              after a successful read.</li>
-            <li>
-              <strong>Bit 1:</strong> Server is not allowed to read
-              the environment variables, and will be blocked if tried.
-              This is set by <strong>ISUP</strong>, and this bit
-              overrides bit 0.
-            </li>
-          </ul>
-        </dd>
-        <dt><strong>Return Port</strong> (16-bit)</dt>
-        <dd>
-          This is the return TCP port number to use for reading IOC
-          information, from <strong>IPORT</strong>.
-        </dd>
-        <dt><strong>User Message</strong> (32-bit)</dt>
-        <dd>
-          Whatever is in <strong>MSG</strong> will be included here.
-        </dd>
-        <dt><strong>IOC Name</strong> (variable length 8-bit)</dt>
-        <dd>
-          This is the value of the environment variable <em>IOC</em>, and is
-          null-terminated.
-        </dd>
-      </dl>
+ A thread is spawned for accepting TCP requests from the remote server on port __IPORT__; if this port value is zero, the record will get an automatically assigned port, updating __IPORT__ with the actual value. The success of opening this port can be seen with __IPSTS__. The TCP port will only accept requests from the IP address specified in __RADDR__ (or __AADDR__ if an auxiliary server is in use), and as long as __ISUP__ is Off. The message sent back upon request is a list of the specified environment variables, the IOC type, and the data special to that type.
 
-    </p>
+ If the __HPRD__ is initially zero, then it is reassigned to the default value, which is currently 15.
 
-    <h3>Information Request Message</h3>
+### process
 
-    <p>
-      This is the message that is read from the TCP
-      port <strong>IPORT</strong> on the IOC.  When the port is
-      opened, the IOC will write this message and then immediately
-      close the port.  There is no way to write a message to the IOC
-      this way.
-    </p>
-    <p>
-      If the suppression <strong>ISUP</strong> field is set to "On",
-      the IOC will immediately close any connection whatsoever to this
-      port (ideally the socket would simply be closed, but that would
-      make things more complicated in the implementation).
-    </p>
+ Nothing actually happens, other than the forward link get processed. Heartbeats are controlled purely by a timed thread.
 
-    <p>
-      <table border style="margin: 0; text-align: center; border-collapse:collapse">
-        <caption><strong>Information Header Format</strong></caption>
-        <tr>
-          <th>Offset (bytes)</th>
-          <th colspan="10">0</th>
-          <td colspan="10">1</td>
-          <th colspan="10">2</th>
-          <td colspan="10">3</td>
-          <th colspan="10">4</th>
-          <td colspan="10">5</td>
-          <td colspan="10">6</td>
-          <td colspan="10">7</td>
-          <th colspan="10">8</th>
-          <td colspan="10">9</td>
-        </tr>
-        <tr>
-          <th>Field</th>
-          <td colspan="20">Version</td>
-          <td colspan="20">IOC Type</td>
-          <td colspan="40">Message Length</td>
-          <td colspan="20">Variable Count</td>
-        </tr>
-      </table>
-      
-      <dl>
-        <dt><strong>Version of Protocol</strong> (16-bit)</dt>
-        <dd>
-          The value of this field is the current version of the
-          protocol for this record.  The remote server can handle a
-          previous version or ignore them as it sees fit.
-        </dd>
-        <dt><strong>IOC Type</strong> (16-bit)</dt>
-        <dd>
-          Stores type of IOC.  Currently only two types are defined.  This
-          value also determines the type of extra information that is at the end
-          of the message.
-          <ul>
-            <li><strong>0)</strong> Generic: No extra information.</li>
-            <li><strong>1)</strong> VxWorks: The boot parameters are sent.</li>
-            <li><strong>2)</strong> Linux: The user and group IDs of
-              the process as well as the hostname are sent.</li>
-            <li><strong>3)</strong> Darwin: The user and group IDs of
-              the process as well as the hostname are sent.</li>
-            <li><strong>4)</strong> Windows: The login name and
-              machine name are sent.</li>
-        </dd>
-        <dt><strong>Message Length</strong> (32-bit)</dt>
-        <dd>
-          This is the length of the entire message.
-        </dd>
-        <dt><strong>Variable Count</strong> (16-bit)</dt>
-        <dd>
-          This is the number of environment variables sent.  Only
-          values for non-empty <strong>EVDxx</strong>
-          and <strong>EVxx</strong> fields are sent.
-        </dd>
-      </dl>
-    </p>
-    
-    <p>
-      At this point of the message, byte 10, the locations become
-      variable due to the variable nature of the data.  The
-      environment variables are sent as multiple records, the number
-      being <strong>Variable Count</strong>.
-    </p>
-    <p>
-      <table border style="margin: 0; text-align: center; border-collapse:collapse">
-        <caption><strong>Environment Variable Record Format</strong></caption>
-        <tr>
-          <th>Record Offset (bytes)</th>
-          <th colspan="10">0</th>
-          <th colspan="10">1</th>
-          <td colspan="10">...</td>
-          <td colspan="10">...</td>
-          <td colspan="10"><strong>x</strong></td>
-          <td colspan="10"><strong>1+x</strong></td>
-          <td colspan="10">2+<strong>x</strong></td>
-          <td colspan="10"><strong>3+x</strong></td>
-          <td colspan="10">...</td>
-          <td colspan="10">...</td>
-          <td colspan="10">...</td>
-          <td colspan="10">...</td>
-          <td colspan="10">2+<strong>x</strong>+<strong>y</strong></td>
-        </tr>
-        <tr>
-          <th>Field</th>
-          <td colspan="10">Name Length (length <strong>x</strong>)</td>
-          <td colspan="40">Variable Name</td>
-          <td colspan="20">Value Length (length <strong>y</strong>)</td>
-          <td colspan="60">Variable Value</td>
-        </tr>
-      </table>
-      
-      <dl>
-        <dt><strong>Name Length</strong> (8-bit)</dt>
-        <dd>
-          This is the length of the environment variable name.
-        </dd>
-        <dt><strong>Variable Name</strong> (variable length 8-bit)</dt>
-        <dd>
-          This is the name of the environment variable (cannot be an
-          empty string).
-        </dd>
-        <dt><strong>Value Length</strong> (16-bit)</dt>
-        <dd>
-          This is the length of the environment variable value.  If
-          the value was over 16-bits in size (64kb), an empty string
-          is returned.
-        </dd>
-        <dt><strong>Variable Value</strong> (variable length 8-bit)</dt>
-        <dd>
-          This is the value of the environment variable.  If the
-          variable did not exist on the IOC, this is an empty string
-          (size 0).
-        </dd>
-      </dl>
+### special
 
-    </p>
-    <p>
-      If the value of <strong>IOC Type</strong> is non-zero, there may
-      be extra data at this point.  Currently both supported types do
-      include data, so the extra information presented below is
-      present for vxWorks, Linux, and Darwin.
-    </p>
+ Changing the __RHOST__ field causes a check here to make sure that the string value is a properly formed IP address. If not, no sending heartbeats will occur.
 
-    <h4>vxWorks</h4>
-    <p>
-      For vxWorks, the extra information is the boot parameters.  The
-      data is either in a string or a number.  A string is represented
-      by an 8-bit string length, followed by the string itself.  The
-      number is a 32-bit number.
-    </p>
-    <p>
-      <table border style="margin: 0; text-align: center; border-collapse:collapse">
-        <caption><strong>Extra vxWorks Information Format</strong></caption>
-        <tr>
-          <th>Field Order</th>
-          <td>Boot Device (str)</td>
-          <td>Unit Number (int)</td>
-          <td>Processor Number (int)</td>
-          <td>Boot Host Name (str)</td>
-          <td>Boot File (str)</td>
-          <td>Address (str)</td>
-          <td>Backplane Address (str)</td>
-          <td>Boot Host Address (str)</td>
-          <td>Gateway Address (str)</td>
-          <td>User Name (str)</td>
-          <td>User Password (str)</td>
-          <td>Flags (int)</td>
-          <td>Target Name (str)</td>
-          <td>Startup Script (str)</td>
-          <td>Other (str)</td>
-        </tr>
-      </table>
-    </p>
+- - - - - -
 
-    <h4>Linux and Darwin</h4>
-    <p>
-      For Linux and Darwin, the extra information is the user and
-      group IDs of the IOC process, as well as the hostname of the
-      host computer.  The data are represented by an 8-bit string
-      length, followed by the string itself.
-    </p>
-    <p>
-      <table border style="margin: 0; text-align: center; border-collapse:collapse">
-        <caption><strong>Extra Linux/Darwin Information Format</strong></caption>
-        <tr>
-          <th>Field Order</th>
-          <td>User ID (str)</td>
-          <td>Group ID (str)</td>
-          <td>Hostname (str)</td>
-        </tr>
-      </table>
-    </p>
+5. Message Protocol
+===================
 
-    <h4>Windows</h4>
-    <p>
-      For Windows, the extra information is the login name of the IOC
-      process, as well as the machine name of the host computer.  The
-      data are represented by an 8-bit string length, followed by the
-      string itself.
-    </p>
-    <p>
-      <table border style="margin: 0; text-align: center; border-collapse:collapse">
-        <caption><strong>Extra Windows Information Format</strong></caption>
-        <tr>
-          <th>Field Order</th>
-          <td>Login name (str)</td>
-          <td>Machine name (str)</td>
-        </tr>
-      </table>
-    </p>
-    
-    <hr>
-    
-  </body>
-</html>
+ This section describes the current protocol, version __5__. All messages sent use network order (big-endian).
+
+### Heartbeat Message
+
+ This is the UDP message sent for each processing of the record. The minimum size for a message payload is 30 bytes, being being fixed fields of 28 bytes with a null-terminated string. All values are unsigned.
+
+ The time values sent are EPICS time values, which are relative to 1990. Converting them to standard Linux time values means adding a value of 631152000 (20 years of seconds) to each.
+
+__Heartbeat Format__
+| Offset (bytes) | 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 | 13 | 14 | 15 | 16 | 17 | 18 | 19 | 20 | 21 | 22 | 23 | 24 | 25 | 26 | 27 | 28 | ... | ... | ... | ... | 28+x |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| Field | Magic | Version | Incarnation | Current Time | Heartbeat Value | Period | Flags | Return Port | User Message | IOC name (length __x__) | 0 |
+
+  __Magic Number__ (32-bit)  The value of this field comes form the __HMAG__ field. It is used by the remote server to delete messages received that don't start with this number.  __Version of Protocol__ (16-bit)  The value of this field is the current version of the protocol for this record. The remote server can handle or ignore a particular version as it sees fit. If the version number does not match the one that this document describes, the fields after this one will most likely differ in some way.  __Incarnation__ (32-bit)  This value is a unique number for this particular boot of the IOC. It's also the boot time as measured by the IOC, which should be unique for each boot, assuming that the EPICS time is correct when the record initialization happens.  __Current Time__ (32-bit)  This is the current time as measure by the IOC.  __Heartbeat Value__ (32-bit)  This is the current value of the __VAL__ field  __Period__ (16-bit)  This is the heartbeat period used by the alive record, which is to be used for determining the operational status of the IOC, and comes from __HPRD__.  __Flags__ (16-bit)  This value holds bit flags for the server. - __Bit 0:__ Server should read the environment variables, as there are updated values or __ITRIG__ was set. This will be cleared after a successful read.
+- __Bit 1:__ Server is not allowed to read the environment variables, and will be blocked if tried. This is set by __ISUP__, and this bit overrides bit 0.
+ 
+  __Return Port__ (16-bit)  This is the return TCP port number to use for reading IOC information, from __IPORT__.  __User Message__ (32-bit)  Whatever is in __MSG__ will be included here.  __IOC Name__ (variable length 8-bit)  This is the value of the environment variable *IOC*, and is null-terminated.  ### Information Request Message
+
+ This is the message that is read from the TCP port __IPORT__ on the IOC. When the port is opened, the IOC will write this message and then immediately close the port. There is no way to write a message to the IOC this way.
+
+ If the suppression __ISUP__ field is set to "On", the IOC will immediately close any connection whatsoever to this port (ideally the socket would simply be closed, but that would make things more complicated in the implementation).
+
+__Information Header Format__
+| Offset (bytes) | 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 |
+|---|---|---|---|---|---|---|---|---|---|---|
+| Field | Version | IOC Type | Message Length | Variable Count |
+
+  __Version of Protocol__ (16-bit)  The value of this field is the current version of the protocol for this record. The remote server can handle a previous version or ignore them as it sees fit.  __IOC Type__ (16-bit)  Stores type of IOC. Currently only two types are defined. This value also determines the type of extra information that is at the end of the message. - __0)__ Generic: No extra information.
+- __1)__ VxWorks: The boot parameters are sent.
+- __2)__ Linux: The user and group IDs of the process as well as the hostname are sent.
+- __3)__ Darwin: The user and group IDs of the process as well as the hostname are sent.
+- __4)__ Windows: The login name and machine name are sent.
+ 
+ __Message Length__ (32-bit)  This is the length of the entire message.  __Variable Count__ (16-bit)  This is the number of environment variables sent. Only values for non-empty __EVDxx__ and __EVxx__ fields are sent.   At this point of the message, byte 10, the locations become variable due to the variable nature of the data. The environment variables are sent as multiple records, the number being __Variable Count__.
+
+__Environment Variable Record Format__
+| Record Offset (bytes) | 0 | 1 | ... | ... | __x__ | __1+x__ | 2+__x__ | __3+x__ | ... | ... | ... | ... | 2+__x__+__y__ |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| Field | Name Length (length __x__) | Variable Name | Value Length (length __y__) | Variable Value |
+
+  __Name Length__ (8-bit)  This is the length of the environment variable name.  __Variable Name__ (variable length 8-bit)  This is the name of the environment variable (cannot be an empty string).  __Value Length__ (16-bit)  This is the length of the environment variable value. If the value was over 16-bits in size (64kb), an empty string is returned.  __Variable Value__ (variable length 8-bit)  This is the value of the environment variable. If the variable did not exist on the IOC, this is an empty string (size 0).   If the value of __IOC Type__ is non-zero, there may be extra data at this point. Currently both supported types do include data, so the extra information presented below is present for vxWorks, Linux, and Darwin.
+
+#### vxWorks
+
+ For vxWorks, the extra information is the boot parameters. The data is either in a string or a number. A string is represented by an 8-bit string length, followed by the string itself. The number is a 32-bit number.
+
+__Extra vxWorks Information Format__
+| Field Order | Boot Device (str) | Unit Number (int) | Processor Number (int) | Boot Host Name (str) | Boot File (str) | Address (str) | Backplane Address (str) | Boot Host Address (str) | Gateway Address (str) | User Name (str) | User Password (str) | Flags (int) | Target Name (str) | Startup Script (str) | Other (str) |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+
+#### Linux and Darwin
+
+ For Linux and Darwin, the extra information is the user and group IDs of the IOC process, as well as the hostname of the host computer. The data are represented by an 8-bit string length, followed by the string itself.
+
+__Extra Linux/Darwin Information Format__
+| Field Order | User ID (str) | Group ID (str) | Hostname (str) |
+|---|---|---|---|
+
+#### Windows
+
+ For Windows, the extra information is the login name of the IOC process, as well as the machine name of the host computer. The data are represented by an 8-bit string length, followed by the string itself.
+
+__Extra Windows Information Format__
+| Field Order | Login name (str) | Machine name (str) |
+|---|---|---|
+
+- - - - - -
