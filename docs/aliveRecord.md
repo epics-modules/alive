@@ -113,62 +113,199 @@ Dohn Arms
 
     The time values sent are EPICS time values, which are relative to 1990. Converting them to standard Linux time values means adding a value of 631152000 (20 years of seconds) to each.
 
-    __Heartbeat Format__
-    | Offset (bytes) | 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 | 13 | 14 | 15 | 16 | 17 | 18 | 19 | 20 | 21 | 22 | 23 | 24 | 25 | 26 | 27 | 28 | ... | ... | ... | ... | 28+x |
-    |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
-    | Field | Magic | Version | Incarnation | Current Time | Heartbeat Value | Period | Flags | Return Port | User Message | IOC name (length __x__) | 0 |
-    
-        __Magic Number__ (32-bit)  The value of this field comes form the __HMAG__ field. It is used by the remote server to delete messages received that don't start with this number.  __Version of Protocol__ (16-bit)  The value of this field is the current version of the protocol for this record. The remote server can handle or ignore a particular version as it sees fit. If the version number does not match the one that this document describes, the fields after this one will most likely differ in some way.  __Incarnation__ (32-bit)  This value is a unique number for this particular boot of the IOC. It's also the boot time as measured by the IOC, which should be unique for each boot, assuming that the EPICS time is correct when the record initialization happens.  __Current Time__ (32-bit)  This is the current time as measure by the IOC.  __Heartbeat Value__ (32-bit)  This is the current value of the __VAL__ field  __Period__ (16-bit)  This is the heartbeat period used by the alive record, which is to be used for determining the operational status of the IOC, and comes from __HPRD__.  __Flags__ (16-bit)  This value holds bit flags for the server. - __Bit 0:__ Server should read the environment variables, as there are updated values or __ITRIG__ was set. This will be cleared after a successful read.
+<table border style="margin: 0; text-align: center; border-collapse:collapse">
+<caption><strong>Heartbeat Format</strong></caption>
+<tr>
+<th>Offset (bytes)</th>
+<th colspan="10">0</th>
+<td colspan="10">1</td>
+<td colspan="10">2</td>
+<td colspan="10">3</td>
+<th colspan="10">4</th>
+<td colspan="10">5</td>
+<th colspan="10">6</th>
+<td colspan="10">7</td>
+<td colspan="10">8</td>
+<td colspan="10">9</td>
+<th colspan="10">10</th>
+<td colspan="10">11</td>
+<td colspan="10">12</td>
+<td colspan="10">13</td>
+<th colspan="10">14</th>
+<td colspan="10">15</td>
+<td colspan="10">16</td>
+<td colspan="10">17</td>
+<th colspan="10">18</th>
+<td colspan="10">19</td>
+<th colspan="10">20</th>
+<td colspan="10">21</td>
+<th colspan="10">22</th>
+<td colspan="10">23</td>
+<th colspan="10">24</th>
+<td colspan="10">25</td>
+<td colspan="10">26</td>
+<td colspan="10">27</td>
+<th colspan="10">28</th>
+<td colspan="10">...</td>
+<td colspan="10">...</td>
+<td colspan="10">...</td>
+<td colspan="10">...</td>
+<th colspan="10">28+x</th>
+</tr>
+<tr>
+<th>Field</th>
+<td colspan="40">Magic</td>
+<td colspan="20">Version</td>
+<td colspan="40">Incarnation</td>
+<td colspan="40">Current Time</td>
+<td colspan="40">Heartbeat Value</td>
+<td colspan="20">Period</td>
+<td colspan="20">Flags</td>
+<td colspan="20">Return Port</td>
+<td colspan="40">User Message</td>
+<td colspan="50">IOC name (length <strong>x</strong>)</td>
+<td colspan="20"><strong>0</strong></td>
+</tr>
+</table>
+
+    __Magic Number__ (32-bit)  The value of this field comes form the __HMAG__ field. It is used by the remote server to delete messages received that don't start with this number.  
+    __Version of Protocol__ (16-bit)  The value of this field is the current version of the protocol for this record. The remote server can handle or ignore a particular version as it sees fit. If the version number does not match the one that this document describes, the fields after this one will most likely differ in some way.  
+    __Incarnation__ (32-bit)  This value is a unique number for this particular boot of the IOC. It's also the boot time as measured by the IOC, which should be unique for each boot, assuming that the EPICS time is correct when the record initialization happens.  
+    __Current Time__ (32-bit)  This is the current time as measure by the IOC.  
+    __Heartbeat Value__ (32-bit)  This is the current value of the __VAL__ field  
+    __Period__ (16-bit)  This is the heartbeat period used by the alive record, which is to be used for determining the operational status of the IOC, and comes from __HPRD__.  
+    __Flags__ (16-bit)  This value holds bit flags for the server. 
+        
+    - __Bit 0:__ Server should read the environment variables, as there are updated values or __ITRIG__ was set. This will be cleared after a successful read.
     - __Bit 1:__ Server is not allowed to read the environment variables, and will be blocked if tried. This is set by __ISUP__, and this bit overrides bit 0.
         
-        __Return Port__ (16-bit)  This is the return TCP port number to use for reading IOC information, from __IPORT__.  __User Message__ (32-bit)  Whatever is in __MSG__ will be included here.  __IOC Name__ (variable length 8-bit)  This is the value of the environment variable *IOC*, and is null-terminated.  ### Information Request Message
+    __Return Port__ (16-bit)  This is the return TCP port number to use for reading IOC information, from __IPORT__.  
+    __User Message__ (32-bit)  Whatever is in __MSG__ will be included here.  
+    __IOC Name__ (variable length 8-bit)  This is the value of the environment variable *IOC*, and is null-terminated.  
     
-        This is the message that is read from the TCP port __IPORT__ on the IOC. When the port is opened, the IOC will write this message and then immediately close the port. There is no way to write a message to the IOC this way.
+    ### Information Request Message
     
-        If the suppression __ISUP__ field is set to "On", the IOC will immediately close any connection whatsoever to this port (ideally the socket would simply be closed, but that would make things more complicated in the implementation).
+    This is the message that is read from the TCP port __IPORT__ on the IOC. When the port is opened, the IOC will write this message and then immediately close the port. There is no way to write a message to the IOC this way.
     
-    __Information Header Format__
-    | Offset (bytes) | 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 |
-    |---|---|---|---|---|---|---|---|---|---|---|
-    | Field | Version | IOC Type | Message Length | Variable Count |
+    If the suppression __ISUP__ field is set to "On", the IOC will immediately close any connection whatsoever to this port (ideally the socket would simply be closed, but that would make things more complicated in the implementation).
     
-        __Version of Protocol__ (16-bit)  The value of this field is the current version of the protocol for this record. The remote server can handle a previous version or ignore them as it sees fit.  __IOC Type__ (16-bit)  Stores type of IOC. Currently only two types are defined. This value also determines the type of extra information that is at the end of the message. - __0)__ Generic: No extra information.
+<table border style="margin: 0; text-align: center; border-collapse:collapse">
+<caption><strong>Information Header Format</strong></caption>
+<tr>
+<th>Offset (bytes)</th>
+<th colspan="10">0</th>
+<td colspan="10">1</td>
+<th colspan="10">2</th>
+<td colspan="10">3</td>
+<th colspan="10">4</th>
+<td colspan="10">5</td>
+<td colspan="10">6</td>
+<td colspan="10">7</td>
+<th colspan="10">8</th>
+<td colspan="10">9</td>
+</tr>
+<tr>
+<th>Field</th>
+<td colspan="20">Version</td>
+<td colspan="20">IOC Type</td>
+<td colspan="40">Message Length</td>
+<td colspan="20">Variable Count</td>
+</tr>
+</table>
+
+    __Version of Protocol__ (16-bit)  The value of this field is the current version of the protocol for this record. The remote server can handle a previous version or ignore them as it sees fit.  __IOC Type__ (16-bit)  Stores type of IOC. Currently only two types are defined. This value also determines the type of extra information that is at the end of the message.  
+    - __0)__ Generic: No extra information.
     - __1)__ VxWorks: The boot parameters are sent.
     - __2)__ Linux: The user and group IDs of the process as well as the hostname are sent.
     - __3)__ Darwin: The user and group IDs of the process as well as the hostname are sent.
     - __4)__ Windows: The login name and machine name are sent.
         
-        __Message Length__ (32-bit)  This is the length of the entire message.  __Variable Count__ (16-bit)  This is the number of environment variables sent. Only values for non-empty __EVDxx__ and __EVxx__ fields are sent.   At this point of the message, byte 10, the locations become variable due to the variable nature of the data. The environment variables are sent as multiple records, the number being __Variable Count__.
+    __Message Length__ (32-bit)  This is the length of the entire message.  
+    __Variable Count__ (16-bit)  This is the number of environment variables sent. Only values for non-empty __EVDxx__ and __EVxx__ fields are sent.   At this point of the message, byte 10, the locations become variable due to the variable nature of the data. The environment variables are sent as multiple records, the number being __Variable Count__.
     
-    __Environment Variable Record Format__
-    | Record Offset (bytes) | 0 | 1 | ... | ... | __x__ | __1+x__ | 2+__x__ | __3+x__ | ... | ... | ... | ... | 2+__x__+__y__ |
-    |---|---|---|---|---|---|---|---|---|---|---|---|---|---|
-    | Field | Name Length (length __x__) | Variable Name | Value Length (length __y__) | Variable Value |
-    
-        __Name Length__ (8-bit)  This is the length of the environment variable name.  __Variable Name__ (variable length 8-bit)  This is the name of the environment variable (cannot be an empty string).  __Value Length__ (16-bit)  This is the length of the environment variable value. If the value was over 16-bits in size (64kb), an empty string is returned.  __Variable Value__ (variable length 8-bit)  This is the value of the environment variable. If the variable did not exist on the IOC, this is an empty string (size 0).   If the value of __IOC Type__ is non-zero, there may be extra data at this point. Currently both supported types do include data, so the extra information presented below is present for vxWorks, Linux, and Darwin.
-    
+<table border style="margin: 0; text-align: center; border-collapse:collapse">
+<caption><strong>Environment Variable Record Format</strong></caption>
+<tr>
+<th>Record Offset (bytes)</th>
+<th colspan="10">0</th>
+<th colspan="10">1</th>
+<td colspan="10">...</td>
+<td colspan="10">...</td>
+<td colspan="10"><strong>x</strong></td>
+<td colspan="10"><strong>1+x</strong></td>
+<td colspan="10">2+<strong>x</strong></td>
+<td colspan="10"><strong>3+x</strong></td>
+<td colspan="10">...</td>
+<td colspan="10">...</td>
+<td colspan="10">...</td>
+<td colspan="10">...</td>
+<td colspan="10">2+<strong>x</strong>+<strong>y</strong></td>
+</tr>
+<tr>
+<th>Field</th>
+<td colspan="10">Name Length (length <strong>x</strong>)</td>
+<td colspan="40">Variable Name</td>
+<td colspan="20">Value Length (length <strong>y</strong>)</td>
+<td colspan="60">Variable Value</td>
+</tr>
+</table>
+
+    __Name Length__ (8-bit)  This is the length of the environment variable name.  
+    __Variable Name__ (variable length 8-bit)  This is the name of the environment variable (cannot be an empty string).  
+    __Value Length__ (16-bit)  This is the length of the environment variable value. If the value was over 16-bits in size (64kb), an empty string is returned.  
+    __Variable Value__ (variable length 8-bit)  This is the value of the environment variable. If the variable did not exist on the IOC, this is an empty string (size 0).   If the value of __IOC Type__ is non-zero, there may be extra data at this point. Currently both supported types do include data, so the extra information presented below is present for vxWorks, Linux, and Darwin.
+
     #### vxWorks
     
-        For vxWorks, the extra information is the boot parameters. The data is either in a string or a number. A string is represented by an 8-bit string length, followed by the string itself. The number is a 32-bit number.
+    For vxWorks, the extra information is the boot parameters. The data is either in a string or a number. A string is represented by an 8-bit string length, followed by the string itself. The number is a 32-bit number.
     
-    __Extra vxWorks Information Format__
-    | Field Order | Boot Device (str) | Unit Number (int) | Processor Number (int) | Boot Host Name (str) | Boot File (str) | Address (str) | Backplane Address (str) | Boot Host Address (str) | Gateway Address (str) | User Name (str) | User Password (str) | Flags (int) | Target Name (str) | Startup Script (str) | Other (str) |
-    |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
-    
+<table border style="margin: 0; text-align: center; border-collapse:collapse">
+<caption><strong>Extra vxWorks Information Format</strong></caption>
+<tr>
+<th>Field Order</th>
+<td>Boot Device (str)</td>
+<td>Unit Number (int)</td>
+<td>Processor Number (int)</td>
+<td>Boot Host Name (str)</td>
+<td>Boot File (str)</td>
+<td>Address (str)</td>
+<td>Backplane Address (str)</td>
+<td>Boot Host Address (str)</td>
+<td>Gateway Address (str)</td>
+<td>User Name (str)</td>
+<td>User Password (str)</td>
+<td>Flags (int)</td>
+<td>Target Name (str)</td>
+<td>Startup Script (str)</td>
+<td>Other (str)</td>
+</tr>
+</table>
+
     #### Linux and Darwin
     
-        For Linux and Darwin, the extra information is the user and group IDs of the IOC process, as well as the hostname of the host computer. The data are represented by an 8-bit string length, followed by the string itself.
+    For Linux and Darwin, the extra information is the user and group IDs of the IOC process, as well as the hostname of the host computer. The data are represented by an 8-bit string length, followed by the string itself.
     
-    __Extra Linux/Darwin Information Format__
-    | Field Order | User ID (str) | Group ID (str) | Hostname (str) |
-    |---|---|---|---|
+<table border style="margin: 0; text-align: center; border-collapse:collapse">
+<caption><strong>Extra Linux/Darwin Information Format</strong></caption>
+<tr>
+<th>Field Order</th>
+<td>User ID (str)</td>
+<td>Group ID (str)</td>
+<td>Hostname (str)</td>
+</tr>
+</table>
     
     #### Windows
     
-        For Windows, the extra information is the login name of the IOC process, as well as the machine name of the host computer. The data are represented by an 8-bit string length, followed by the string itself.
+    For Windows, the extra information is the login name of the IOC process, as well as the machine name of the host computer. The data are represented by an 8-bit string length, followed by the string itself.
     
-    __Extra Windows Information Format__
-    | Field Order | Login name (str) | Machine name (str) |
-    |---|---|---|
+<table border style="margin: 0; text-align: center; border-collapse:collapse">
+<caption><strong>Extra Windows Information Format</strong></caption>
+<tr>
+<th>Field Order</th>
+<td>Login name (str)</td>
+<td>Machine name (str)</td>
+</tr>
+</table>
     
     - - - - - -
