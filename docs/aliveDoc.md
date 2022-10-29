@@ -1,7 +1,7 @@
 ---
 layout: default
-title: Home
-nav_order: 1
+title: Overview
+nav_order: 2
 ---
 
 
@@ -10,30 +10,48 @@ alive Module Documentation
 
 Dohn Arms
 
-[Release Notes](aliveReleaseNotes.html)Record
+[Release Notes](aliveReleaseNotes.html)
+
+Record
 ------
 
-[aliveRecord.html](aliveRecord.html)  The __alive__ record is used for determining where the heartbeat information is sent, as well as the extra environment variables that may be requested remotely.  [aliveServer.html](aliveServer.html)  This record requires a separate server program outside of the scope of EPICS for it to be useful. It is intended for it to be straightforward to create such a server implementation, and this linked document describes how one can implement one for receiving and processing the heartbeat meassages, as well as making inquiries to the alive record about the extra information. The author's version of such a server, __alived__, can be found [here](https://github.com/epics-alive-server/alived).  EPICS Database
+[aliveRecord.html](aliveRecord.html)
+
+> The __alive__ record is used for determining where the heartbeat information is sent, as well as the extra environment variables that may be requested remotely.  
+
+[aliveServer.html](aliveServer.html)  
+
+>This record requires a separate server program outside of the scope of EPICS for it to be useful. It is intended for it to be straightforward to create such a server implementation, and this linked document describes how one can implement one for receiving and processing the heartbeat meassages, as well as making inquiries to the alive record about the extra information. The author's version of such a server, __alived__, can be found [here](https://github.com/epics-alive-server/alived).  
+
+EPICS Database
 --------------
 
-  alive.db  This database is basically a straight implementation of the alive record itself. It creates a record of the name "$(P)alive".
+alive.db  
 
- The name of the IOC sent back to the server is by default the value of the "IOC" environment variable, but can be directly specified by setting IOCNM to the name wanted.
+>This database is basically a straight implementation of the alive record itself. It creates a record of the name "$(P)alive".
+>
+>The name of the IOC sent back to the server is by default the value of the "IOC" environment variable, but can be directly specified by setting IOCNM to the name wanted.
+>
+>The __RHOST__ is defined using "$(RHOST)". The rest of the fields that can be specified have defaults in them that can be overridden. The default for "$(RPORT)" is "5678", and for "$(HPRD)" is "15". If multiple IOC are to run on the same computer, then "$(IPORT)" for each IOC should have a different value, or all "$(IPORT)" values should be set to zero to allow the system to determine it. Only the first nine of the default environment variable fields, "$(EVD1)" to "$(EVD9)", have values, being "ARCH", "TOP", "EPICS\_BASE", "SUPPORT", "ENGINEER", "LOCATION", "GROUP", "STY", and "PROCSERV\_INFO".
 
- The __RHOST__ is defined using "$(RHOST)". The rest of the fields that can be specified have defaults in them that can be overridden. The default for "$(RPORT)" is "5678", and for "$(HPRD)" is "15". If multiple IOC are to run on the same computer, then "$(IPORT)" for each IOC should have a different value, or all "$(IPORT)" values should be set to zero to allow the system to determine it. Only the first nine of the default environment variable fields, "$(EVD1)" to "$(EVD9)", have values, being "ARCH", "TOP", "EPICS\_BASE", "SUPPORT", "ENGINEER", "LOCATION", "GROUP", "STY", and "PROCSERV\_INFO".
+aliveMSGCalc.db  
 
-  aliveMSGCalc.db  This database consists of a calcout record that will periodically set the __MSG__ value of the IOC's alive record, based on status PV values of other *synApps* modules. The __MSG__ usage is undefined, but was intended for sending warnings if something bad happens, as a sequence of error bits. Currently, only the status of the autosave is being used. If the first bit of the __MSG__ is set, then autosave is dead.
-
- This is not included directly in *alive.db* since the alive module might be deployed without the other *synApps* modules. It might also become locally customized.
-
- There is an associated *aliveMSGCalc\_local.req* file. It does not use the normal *\_settings.req* convention (which in recent synApps versions causes it to be automatically loaded), as it's intended for manually overriding the global defaults only if that is wanted. Otherwise, changing the calculation parameters would need to be done for every IOC instead of at the master file location.
+>This database consists of a calcout record that will periodically set the __MSG__ value of the IOC's alive record, based on status PV values of other *synApps* modules. The __MSG__ usage is undefined, but was intended for sending warnings if something bad happens, as a sequence of error bits. Currently, only the status of the autosave is being used. If the first bit of the __MSG__ is set, then autosave is dead.
+>
+>This is not included directly in *alive.db* since the alive module might be deployed without the other *synApps* modules. It might also become locally customized.
+>
+>There is an associated *aliveMSGCalc\_local.req* file. It does not use the normal *\_settings.req* convention (which in recent synApps versions causes it to be automatically loaded), as it's intended for manually overriding the global defaults only if that is wanted. Otherwise, changing the calculation parameters would need to be done for every IOC instead of at the master file location.
 
 MEDM display files
 ------------------
 
-  aliveRecord.adl  This is the medm ADL file for an alive record. All the fields, except for the environment variables to be sent, are exposed on this screen.
+aliveRecord.adl  
 
-  aliveRecordEnvVars.adl  This is the medm ADL file for the environment variables to be sent by the alive record. The top values are the unchangeable defaults, while the bottom values can be changed at any time.
+>This is the medm ADL file for an alive record. All the fields, except for the environment variables to be sent, are exposed on this screen.
+
+aliveRecordEnvVars.adl  
+
+>This is the medm ADL file for the environment variables to be sent by the alive record. The top values are the unchangeable defaults, while the bottom values can be changed at any time.
 
 How to build and use
 --------------------
