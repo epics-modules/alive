@@ -84,7 +84,7 @@ Dohn Arms
 4. Record Support Routines
 ==========================
 
-    ### init\_record
+### init\_record
 
     The current time is recorded as the IOC boot time. A UDP socket is opened for sending heartbeat messages. An address structure for the remote server is initialized, using __RHOST__ and __RPORT__, with the numeric IP address put into __RADDR__. The name of the IOC is read from the __IOCNM__ field, and if that is empty, from the "IOC" environment variable.
 
@@ -92,11 +92,11 @@ Dohn Arms
 
     If the __HPRD__ is initially zero, then it is reassigned to the default value, which is currently 15.
 
-    ### process
+### process
 
     Nothing actually happens, other than the forward link get processed. Heartbeats are controlled purely by a timed thread.
 
-    ### special
+### special
 
     Changing the __RHOST__ field causes a check here to make sure that the string value is a properly formed IP address. If not, no sending heartbeats will occur.
 
@@ -107,7 +107,7 @@ Dohn Arms
 
     This section describes the current protocol, version __5__. All messages sent use network order (big-endian).
 
-    ### Heartbeat Message
+### Heartbeat Message
 
     This is the UDP message sent for each processing of the record. The minimum size for a message payload is 30 bytes, being being fixed fields of 28 bytes with a null-terminated string. All values are unsigned.
 
@@ -168,26 +168,26 @@ Dohn Arms
 </tr>
 </table>
 
-    __Magic Number__ (32-bit)  The value of this field comes form the __HMAG__ field. It is used by the remote server to delete messages received that don't start with this number.  
-    __Version of Protocol__ (16-bit)  The value of this field is the current version of the protocol for this record. The remote server can handle or ignore a particular version as it sees fit. If the version number does not match the one that this document describes, the fields after this one will most likely differ in some way.  
-    __Incarnation__ (32-bit)  This value is a unique number for this particular boot of the IOC. It's also the boot time as measured by the IOC, which should be unique for each boot, assuming that the EPICS time is correct when the record initialization happens.  
-    __Current Time__ (32-bit)  This is the current time as measure by the IOC.  
-    __Heartbeat Value__ (32-bit)  This is the current value of the __VAL__ field  
-    __Period__ (16-bit)  This is the heartbeat period used by the alive record, which is to be used for determining the operational status of the IOC, and comes from __HPRD__.  
-    __Flags__ (16-bit)  This value holds bit flags for the server. 
-        
-    - __Bit 0:__ Server should read the environment variables, as there are updated values or __ITRIG__ was set. This will be cleared after a successful read.
-    - __Bit 1:__ Server is not allowed to read the environment variables, and will be blocked if tried. This is set by __ISUP__, and this bit overrides bit 0.
-        
-    __Return Port__ (16-bit)  This is the return TCP port number to use for reading IOC information, from __IPORT__.  
-    __User Message__ (32-bit)  Whatever is in __MSG__ will be included here.  
-    __IOC Name__ (variable length 8-bit)  This is the value of the environment variable *IOC*, and is null-terminated.  
+__Magic Number__ (32-bit)  The value of this field comes form the __HMAG__ field. It is used by the remote server to delete messages received that don't start with this number.  
+__Version of Protocol__ (16-bit)  The value of this field is the current version of the protocol for this record. The remote server can handle or ignore a particular version as it sees fit. If the version number does not match the one that this document describes, the fields after this one will most likely differ in some way.  
+__Incarnation__ (32-bit)  This value is a unique number for this particular boot of the IOC. It's also the boot time as measured by the IOC, which should be unique for each boot, assuming that the EPICS time is correct when the record initialization happens.  
+__Current Time__ (32-bit)  This is the current time as measure by the IOC.  
+__Heartbeat Value__ (32-bit)  This is the current value of the __VAL__ field  
+__Period__ (16-bit)  This is the heartbeat period used by the alive record, which is to be used for determining the operational status of the IOC, and comes from __HPRD__.  
+__Flags__ (16-bit)  This value holds bit flags for the server. 
     
-    ### Information Request Message
+- __Bit 0:__ Server should read the environment variables, as there are updated values or __ITRIG__ was set. This will be cleared after a successful read.
+- __Bit 1:__ Server is not allowed to read the environment variables, and will be blocked if tried. This is set by __ISUP__, and this bit overrides bit 0.
     
-    This is the message that is read from the TCP port __IPORT__ on the IOC. When the port is opened, the IOC will write this message and then immediately close the port. There is no way to write a message to the IOC this way.
+__Return Port__ (16-bit)  This is the return TCP port number to use for reading IOC information, from __IPORT__.  
+__User Message__ (32-bit)  Whatever is in __MSG__ will be included here.  
+__IOC Name__ (variable length 8-bit)  This is the value of the environment variable *IOC*, and is null-terminated.  
     
-    If the suppression __ISUP__ field is set to "On", the IOC will immediately close any connection whatsoever to this port (ideally the socket would simply be closed, but that would make things more complicated in the implementation).
+### Information Request Message
+    
+This is the message that is read from the TCP port __IPORT__ on the IOC. When the port is opened, the IOC will write this message and then immediately close the port. There is no way to write a message to the IOC this way.
+
+If the suppression __ISUP__ field is set to "On", the IOC will immediately close any connection whatsoever to this port (ideally the socket would simply be closed, but that would make things more complicated in the implementation).
     
 <table border style="margin: 0; text-align: center; border-collapse:collapse">
 <caption><strong>Information Header Format</strong></caption>
@@ -213,15 +213,15 @@ Dohn Arms
 </tr>
 </table>
 
-    __Version of Protocol__ (16-bit)  The value of this field is the current version of the protocol for this record. The remote server can handle a previous version or ignore them as it sees fit.  __IOC Type__ (16-bit)  Stores type of IOC. Currently only two types are defined. This value also determines the type of extra information that is at the end of the message.  
-    - __0)__ Generic: No extra information.
-    - __1)__ VxWorks: The boot parameters are sent.
-    - __2)__ Linux: The user and group IDs of the process as well as the hostname are sent.
-    - __3)__ Darwin: The user and group IDs of the process as well as the hostname are sent.
-    - __4)__ Windows: The login name and machine name are sent.
-        
-    __Message Length__ (32-bit)  This is the length of the entire message.  
-    __Variable Count__ (16-bit)  This is the number of environment variables sent. Only values for non-empty __EVDxx__ and __EVxx__ fields are sent.   At this point of the message, byte 10, the locations become variable due to the variable nature of the data. The environment variables are sent as multiple records, the number being __Variable Count__.
+__Version of Protocol__ (16-bit)  The value of this field is the current version of the protocol for this record. The remote server can handle a previous version or ignore them as it sees fit.  __IOC Type__ (16-bit)  Stores type of IOC. Currently only two types are defined. This value also determines the type of extra information that is at the end of the message.  
+- __0)__ Generic: No extra information.
+- __1)__ VxWorks: The boot parameters are sent.
+- __2)__ Linux: The user and group IDs of the process as well as the hostname are sent.
+- __3)__ Darwin: The user and group IDs of the process as well as the hostname are sent.
+- __4)__ Windows: The login name and machine name are sent.
+    
+__Message Length__ (32-bit)  This is the length of the entire message.  
+__Variable Count__ (16-bit)  This is the number of environment variables sent. Only values for non-empty __EVDxx__ and __EVxx__ fields are sent.   At this point of the message, byte 10, the locations become variable due to the variable nature of the data. The environment variables are sent as multiple records, the number being __Variable Count__.
     
 <table border style="margin: 0; text-align: center; border-collapse:collapse">
 <caption><strong>Environment Variable Record Format</strong></caption>
@@ -250,14 +250,14 @@ Dohn Arms
 </tr>
 </table>
 
-    __Name Length__ (8-bit)  This is the length of the environment variable name.  
-    __Variable Name__ (variable length 8-bit)  This is the name of the environment variable (cannot be an empty string).  
-    __Value Length__ (16-bit)  This is the length of the environment variable value. If the value was over 16-bits in size (64kb), an empty string is returned.  
-    __Variable Value__ (variable length 8-bit)  This is the value of the environment variable. If the variable did not exist on the IOC, this is an empty string (size 0).   If the value of __IOC Type__ is non-zero, there may be extra data at this point. Currently both supported types do include data, so the extra information presented below is present for vxWorks, Linux, and Darwin.
+__Name Length__ (8-bit)  This is the length of the environment variable name.  
+__Variable Name__ (variable length 8-bit)  This is the name of the environment variable (cannot be an empty string).  
+__Value Length__ (16-bit)  This is the length of the environment variable value. If the value was over 16-bits in size (64kb), an empty string is returned.  
+__Variable Value__ (variable length 8-bit)  This is the value of the environment variable. If the variable did not exist on the IOC, this is an empty string (size 0).   If the value of __IOC Type__ is non-zero, there may be extra data at this point. Currently both supported types do include data, so the extra information presented below is present for vxWorks, Linux, and Darwin.
 
-    #### vxWorks
-    
-    For vxWorks, the extra information is the boot parameters. The data is either in a string or a number. A string is represented by an 8-bit string length, followed by the string itself. The number is a 32-bit number.
+#### vxWorks
+
+For vxWorks, the extra information is the boot parameters. The data is either in a string or a number. A string is represented by an 8-bit string length, followed by the string itself. The number is a 32-bit number.
     
 <table border style="margin: 0; text-align: center; border-collapse:collapse">
 <caption><strong>Extra vxWorks Information Format</strong></caption>
@@ -281,9 +281,9 @@ Dohn Arms
 </tr>
 </table>
 
-    #### Linux and Darwin
-    
-    For Linux and Darwin, the extra information is the user and group IDs of the IOC process, as well as the hostname of the host computer. The data are represented by an 8-bit string length, followed by the string itself.
+#### Linux and Darwin
+
+For Linux and Darwin, the extra information is the user and group IDs of the IOC process, as well as the hostname of the host computer. The data are represented by an 8-bit string length, followed by the string itself.
     
 <table border style="margin: 0; text-align: center; border-collapse:collapse">
 <caption><strong>Extra Linux/Darwin Information Format</strong></caption>
@@ -295,9 +295,9 @@ Dohn Arms
 </tr>
 </table>
     
-    #### Windows
-    
-    For Windows, the extra information is the login name of the IOC process, as well as the machine name of the host computer. The data are represented by an 8-bit string length, followed by the string itself.
+#### Windows
+
+For Windows, the extra information is the login name of the IOC process, as well as the machine name of the host computer. The data are represented by an 8-bit string length, followed by the string itself.
     
 <table border style="margin: 0; text-align: center; border-collapse:collapse">
 <caption><strong>Extra Windows Information Format</strong></caption>
@@ -308,4 +308,4 @@ Dohn Arms
 </tr>
 </table>
     
-    - - - - - -
+- - - - - -
