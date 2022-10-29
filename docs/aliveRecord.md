@@ -121,54 +121,54 @@ The time values sent are EPICS time values, which are relative to 1990. Converti
 <caption><strong>Heartbeat Format</strong></caption>
 <tr>
 <th>Offset (bytes)</th>
-<th colspan="5">0</th>
-<td colspan="5">1</td>
-<td colspan="5">2</td>
-<td colspan="5">3</td>
-<th colspan="5">4</th>
-<td colspan="5">5</td>
-<th colspan="5">6</th>
-<td colspan="5">7</td>
-<td colspan="5">8</td>
-<td colspan="5">9</td>
-<th colspan="5">10</th>
-<td colspan="5">11</td>
-<td colspan="5">12</td>
-<td colspan="5">13</td>
-<th colspan="5">14</th>
-<td colspan="5">15</td>
-<td colspan="5">16</td>
-<td colspan="5">17</td>
-<th colspan="5">18</th>
-<td colspan="5">19</td>
-<th colspan="5">20</th>
-<td colspan="5">21</td>
-<th colspan="5">22</th>
-<td colspan="5">23</td>
-<th colspan="5">24</th>
-<td colspan="5">25</td>
-<td colspan="5">26</td>
-<td colspan="5">27</td>
-<th colspan="5">28</th>
-<td colspan="5">...</td>
-<td colspan="5">...</td>
-<td colspan="5">...</td>
-<td colspan="5">...</td>
-<th colspan="5">28+x</th>
+<th colspan="1">0</th>
+<td colspan="1">1</td>
+<td colspan="1">2</td>
+<td colspan="1">3</td>
+<th colspan="1">4</th>
+<td colspan="1">5</td>
+<th colspan="1">6</th>
+<td colspan="1">7</td>
+<td colspan="1">8</td>
+<td colspan="1">9</td>
+<th colspan="1">10</th>
+<td colspan="1">11</td>
+<td colspan="1">12</td>
+<td colspan="1">13</td>
+<th colspan="1">14</th>
+<td colspan="1">15</td>
+<td colspan="1">16</td>
+<td colspan="1">17</td>
+<th colspan="1">18</th>
+<td colspan="1">19</td>
+<th colspan="1">20</th>
+<td colspan="1">21</td>
+<th colspan="1">22</th>
+<td colspan="1">23</td>
+<th colspan="1">24</th>
+<td colspan="1">25</td>
+<td colspan="1">26</td>
+<td colspan="1">27</td>
+<th colspan="1">28</th>
+<td colspan="1">...</td>
+<td colspan="1">...</td>
+<td colspan="1">...</td>
+<td colspan="1">...</td>
+<th colspan="1">28+x</th>
 </tr>
 <tr>
 <th>Field</th>
-<td colspan="20">Magic</td>
-<td colspan="10">Version</td>
-<td colspan="20">Incarnation</td>
-<td colspan="20">Current Time</td>
-<td colspan="20">Heartbeat Value</td>
-<td colspan="10">Period</td>
-<td colspan="10">Flags</td>
-<td colspan="10">Return Port</td>
-<td colspan="20">User Message</td>
-<td colspan="25">IOC name (length <strong>x</strong>)</td>
-<td colspan="10"><strong>0</strong></td>
+<td colspan="4">Magic</td>
+<td colspan="2">Version</td>
+<td colspan="4">Incarnation</td>
+<td colspan="4">Current Time</td>
+<td colspan="4">Heartbeat Value</td>
+<td colspan="2">Period</td>
+<td colspan="2">Flags</td>
+<td colspan="2">Return Port</td>
+<td colspan="4">User Message</td>
+<td colspan="5">IOC name (length <strong>x</strong>)</td>
+<td colspan="2"><strong>0</strong></td>
 </tr>
 </table>
 
@@ -263,7 +263,7 @@ If the suppression __ISUP__ field is set to "On", the IOC will immediately close
 
 For vxWorks, the extra information is the boot parameters. The data is either in a string or a number. A string is represented by an 8-bit string length, followed by the string itself. The number is a 32-bit number.
     
-<table border style="margin: 0; text-align: center; border-collapse: collapse">
+<table border style="margin: 0; text-align: center; border-collapse: collapse; font-size:80%">
 <caption><strong>Extra vxWorks Information Format</strong></caption>
 <tr>
 <th>Field Order</th>
