@@ -117,60 +117,8 @@ This is the UDP message sent for each processing of the record. The minimum size
 
 The time values sent are EPICS time values, which are relative to 1990. Converting them to standard Linux time values means adding a value of 631152000 (20 years of seconds) to each.
 
-<table border style="margin: 0; text-align: center">
-<caption><strong>Heartbeat Format</strong></caption>
-<tr>
-<th>Offset (bytes)</th>
-<th colspan="1">0</th>
-<td colspan="1">1</td>
-<td colspan="1">2</td>
-<td colspan="1">3</td>
-<th colspan="1">4</th>
-<td colspan="1">5</td>
-<th colspan="1">6</th>
-<td colspan="1">7</td>
-<td colspan="1">8</td>
-<td colspan="1">9</td>
-<th colspan="1">10</th>
-<td colspan="1">11</td>
-<td colspan="1">12</td>
-<td colspan="1">13</td>
-<th colspan="1">14</th>
-<td colspan="1">15</td>
-<td colspan="1">16</td>
-<td colspan="1">17</td>
-<th colspan="1">18</th>
-<td colspan="1">19</td>
-<th colspan="1">20</th>
-<td colspan="1">21</td>
-<th colspan="1">22</th>
-<td colspan="1">23</td>
-<th colspan="1">24</th>
-<td colspan="1">25</td>
-<td colspan="1">26</td>
-<td colspan="1">27</td>
-<th colspan="1">28</th>
-<td colspan="1">...</td>
-<td colspan="1">...</td>
-<td colspan="1">...</td>
-<td colspan="1">...</td>
-<th colspan="1">28+x</th>
-</tr>
-<tr>
-<th>Field</th>
-<td colspan="4">Magic</td>
-<td colspan="2">Version</td>
-<td colspan="4">Incarnation</td>
-<td colspan="4">Current Time</td>
-<td colspan="4">Heartbeat Value</td>
-<td colspan="2">Period</td>
-<td colspan="2">Flags</td>
-<td colspan="2">Return Port</td>
-<td colspan="4">User Message</td>
-<td colspan="5">IOC name (length <strong>x</strong>)</td>
-<td colspan="2"><strong>0</strong></td>
-</tr>
-</table>
+| Offset (bytes) |  0-3  |   4-5   |     6-9     |     10-13    |       14-17     |  18-19 | 20-21 |    22-23    |   24 - 27    |         28...       | 28+X |
+| Field          | Magic | Version | Incarnation | Current Time | Heartbeat Value | Period | Flags | Return Port | User Message | IOC Name (length X) |   0  |
 
 * __Magic Number__ (32-bit)  The value of this field comes form the __HMAG__ field. It is used by the remote server to delete messages received that don't start with this number.  
 * __Version of Protocol__ (16-bit)  The value of this field is the current version of the protocol for this record. The remote server can handle or ignore a particular version as it sees fit. If the version number does not match the one that this document describes, the fields after this one will most likely differ in some way.  
