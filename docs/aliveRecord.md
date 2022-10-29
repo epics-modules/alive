@@ -10,8 +10,8 @@ alive Record
 
 Dohn Arms
 
-1. Introduction
-===============
+Introduction
+============
 
     The alive record is intended as a way to allow verification that an IOC is running. It is an active system, using heartbeat messages sent to a central server (such as [alived](https://github.com/epics-alive-server/alived)), which collects heartbeat messages and monitors the IOC statuses. The alive record also allows for the server to query extra information of the IOC, being environment variables (specified in the record) and system specific information (vxWorks boot line, Linux user, etc.)
 
@@ -21,8 +21,8 @@ Dohn Arms
 
     ![](aliveRecord.png) ![](aliveRecordEnvVars.png)- - - - - -
 
-2. Operation
-============
+Operation
+=========
 
     The alive record does not process normally, as most of what it does is done in two threads separate from normal record processing. One thread will send UDP heartbeats every __HPRD__ seconds to a main remote server and optionally an auxiliary server, while the other thread listens for connections from the remote server(s). When the record actually does process, the current heartbeat count is returned as __VAL__.
 
@@ -30,8 +30,8 @@ Dohn Arms
 
     - - - - - -
 
-3. Record Fields
-================
+Record Fields
+=============
 
     The __VAL__ field holds the current heartbeat value (initially zero), and is incremented each time a UDP heartbeat is sent, every __HPRD__ seconds, assuming __HRTBT__ is set to "On".
 
@@ -81,37 +81,37 @@ Dohn Arms
 
     - - - - - -
 
-4. Record Support Routines
-==========================
+Record Support Routines
+=======================
 
 ### init\_record
 
-    The current time is recorded as the IOC boot time. A UDP socket is opened for sending heartbeat messages. An address structure for the remote server is initialized, using __RHOST__ and __RPORT__, with the numeric IP address put into __RADDR__. The name of the IOC is read from the __IOCNM__ field, and if that is empty, from the "IOC" environment variable.
+The current time is recorded as the IOC boot time. A UDP socket is opened for sending heartbeat messages. An address structure for the remote server is initialized, using __RHOST__ and __RPORT__, with the numeric IP address put into __RADDR__. The name of the IOC is read from the __IOCNM__ field, and if that is empty, from the "IOC" environment variable.
 
-    A thread is spawned for accepting TCP requests from the remote server on port __IPORT__; if this port value is zero, the record will get an automatically assigned port, updating __IPORT__ with the actual value. The success of opening this port can be seen with __IPSTS__. The TCP port will only accept requests from the IP address specified in __RADDR__ (or __AADDR__ if an auxiliary server is in use), and as long as __ISUP__ is Off. The message sent back upon request is a list of the specified environment variables, the IOC type, and the data special to that type.
+A thread is spawned for accepting TCP requests from the remote server on port __IPORT__; if this port value is zero, the record will get an automatically assigned port, updating __IPORT__ with the actual value. The success of opening this port can be seen with __IPSTS__. The TCP port will only accept requests from the IP address specified in __RADDR__ (or __AADDR__ if an auxiliary server is in use), and as long as __ISUP__ is Off. The message sent back upon request is a list of the specified environment variables, the IOC type, and the data special to that type.
 
-    If the __HPRD__ is initially zero, then it is reassigned to the default value, which is currently 15.
+If the __HPRD__ is initially zero, then it is reassigned to the default value, which is currently 15.
 
 ### process
 
-    Nothing actually happens, other than the forward link get processed. Heartbeats are controlled purely by a timed thread.
+Nothing actually happens, other than the forward link get processed. Heartbeats are controlled purely by a timed thread.
 
 ### special
 
-    Changing the __RHOST__ field causes a check here to make sure that the string value is a properly formed IP address. If not, no sending heartbeats will occur.
+Changing the __RHOST__ field causes a check here to make sure that the string value is a properly formed IP address. If not, no sending heartbeats will occur.
 
-    - - - - - -
+- - - - - -
 
-5. Message Protocol
-===================
+Message Protocol
+================
 
-    This section describes the current protocol, version __5__. All messages sent use network order (big-endian).
+This section describes the current protocol, version __5__. All messages sent use network order (big-endian).
 
 ### Heartbeat Message
 
-    This is the UDP message sent for each processing of the record. The minimum size for a message payload is 30 bytes, being being fixed fields of 28 bytes with a null-terminated string. All values are unsigned.
+This is the UDP message sent for each processing of the record. The minimum size for a message payload is 30 bytes, being being fixed fields of 28 bytes with a null-terminated string. All values are unsigned.
 
-    The time values sent are EPICS time values, which are relative to 1990. Converting them to standard Linux time values means adding a value of 631152000 (20 years of seconds) to each.
+The time values sent are EPICS time values, which are relative to 1990. Converting them to standard Linux time values means adding a value of 631152000 (20 years of seconds) to each.
 
 <table border style="margin: 0; text-align: center; border-collapse:collapse">
 <caption><strong>Heartbeat Format</strong></caption>
@@ -189,7 +189,7 @@ This is the message that is read from the TCP port __IPORT__ on the IOC. When th
 
 If the suppression __ISUP__ field is set to "On", the IOC will immediately close any connection whatsoever to this port (ideally the socket would simply be closed, but that would make things more complicated in the implementation).
     
-<table border style="margin: 0; text-align: center; border-collapse:collapse">
+<table border style="margin: 0; text-align: center">
 <caption><strong>Information Header Format</strong></caption>
 <tr>
 <th>Offset (bytes)</th>
@@ -223,7 +223,7 @@ __Version of Protocol__ (16-bit)  The value of this field is the current version
 __Message Length__ (32-bit)  This is the length of the entire message.  
 __Variable Count__ (16-bit)  This is the number of environment variables sent. Only values for non-empty __EVDxx__ and __EVxx__ fields are sent.   At this point of the message, byte 10, the locations become variable due to the variable nature of the data. The environment variables are sent as multiple records, the number being __Variable Count__.
     
-<table border style="margin: 0; text-align: center; border-collapse:collapse">
+<table border style="margin: 0; text-align: center">
 <caption><strong>Environment Variable Record Format</strong></caption>
 <tr>
 <th>Record Offset (bytes)</th>
@@ -259,7 +259,7 @@ __Variable Value__ (variable length 8-bit)  This is the value of the environment
 
 For vxWorks, the extra information is the boot parameters. The data is either in a string or a number. A string is represented by an 8-bit string length, followed by the string itself. The number is a 32-bit number.
     
-<table border style="margin: 0; text-align: center; border-collapse:collapse">
+<table border style="margin: 0; text-align: center">
 <caption><strong>Extra vxWorks Information Format</strong></caption>
 <tr>
 <th>Field Order</th>
@@ -285,7 +285,7 @@ For vxWorks, the extra information is the boot parameters. The data is either in
 
 For Linux and Darwin, the extra information is the user and group IDs of the IOC process, as well as the hostname of the host computer. The data are represented by an 8-bit string length, followed by the string itself.
     
-<table border style="margin: 0; text-align: center; border-collapse:collapse">
+<table border style="margin: 0; text-align: center">
 <caption><strong>Extra Linux/Darwin Information Format</strong></caption>
 <tr>
 <th>Field Order</th>
@@ -299,7 +299,7 @@ For Linux and Darwin, the extra information is the user and group IDs of the IOC
 
 For Windows, the extra information is the login name of the IOC process, as well as the machine name of the host computer. The data are represented by an 8-bit string length, followed by the string itself.
     
-<table border style="margin: 0; text-align: center; border-collapse:collapse">
+<table border style="margin: 0; text-align: center">
 <caption><strong>Extra Windows Information Format</strong></caption>
 <tr>
 <th>Field Order</th>
