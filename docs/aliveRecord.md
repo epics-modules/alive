@@ -186,43 +186,39 @@ If the suppression __ISUP__ field is set to "On", the IOC will immediately close
 
 For vxWorks, the extra information is the boot parameters. The data is either in a string or a number. A string is represented by an 8-bit string length, followed by the string itself. The number is a 32-bit number.
     
-|       Field Order       |
-|:------------------------|
-| Boot Device (str)       |
-| Unit Number (int)       |
-| Processor Number (int)  |
-| Boot Host Name (str)    |
-| Boot File (str)         |
-| Address (str)           |
-| Backplane Address (str) |
-| Boot Host Address (str) |
-| Gateway Address (str)   |
-| User Name (str)         |
-| User Password (str)     |
-| Flags (int)             |
-| Target Name (str)       |
-| Startup Script (str)    |
-| Other (str)             |
-
+* __Field Order__
+    * Boot Device (str)       
+    * Unit Number (int)       
+    * Processor Number (int)  
+    * Boot Host Name (str)    
+    * Boot File (str)         
+    * Address (str)           
+    * Backplane Address (str) 
+    * Boot Host Address (str) 
+    * Gateway Address (str)   
+    * User Name (str)         
+    * User Password (str)     
+    * Flags (int)             
+    * Target Name (str)       
+    * Startup Script (str)    
+    * Other (str)   
 
 #### Linux and Darwin
 
 For Linux and Darwin, the extra information is the user and group IDs of the IOC process, as well as the hostname of the host computer. The data are represented by an 8-bit string length, followed by the string itself.
     
-|   Field Order  |
-|:---------------|
-| User ID (str)  |
-| Group ID (str) |
-| Hostname (str) |
+* __Field Order__
+    * User ID (str)  
+    * Group ID (str) 
+    * Hostname (str) 
 
     
 #### Windows
 
 For Windows, the extra information is the login name of the IOC process, as well as the machine name of the host computer. The data are represented by an 8-bit string length, followed by the string itself.
     
-|     Field Order    |
-|:-------------------|
-| Login name (str)   |
-| Machine name (str) |
+* __Field Order__
+    * Login name (str)   
+    * Machine name (str) 
     
 - - - - - -
