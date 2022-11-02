@@ -8,21 +8,19 @@ nav_order: 5
 alive Server Design
 ===================
 
-Dohn Arms
+Introduction
+------------
 
-1. Introduction
-===============
+The alive record in itself is not very useful, as it needs a server that collects the heartbeat UDP packets sent by the alive records on IOCs. The server has to process the messages and keep a database in order to make use of the information.
 
- The alive record in itself is not very useful, as it needs a server that collects the heartbeat UDP packets sent by the alive records on IOCs. The server has to process the messages and keep a database in order to make use of the information.
+The typical intended configuration is for many IOCs sending heartbeats to a single server. This of course means there is a single point of failure, being the server. If this is a problem, since the record doesn't allow for multiple packet recipients (although it could in theory), multiple records could be on an IOC with different server targets (and different local TCP ports), allowing for server redundancy.
 
- The typical intended configuration is for many IOCs sending heartbeats to a single server. This of course means there is a single point of failure, being the server. If this is a problem, since the record doesn't allow for multiple packet recipients (although it could in theory), multiple records could be on an IOC with different server targets (and different local TCP ports), allowing for server redundancy.
-
- This document describes how the data can be used. It is based on how the author has designed a server, [alived](https://github.com/epics-alive-server/alived).
+This document describes how the data can be used. It is based on how the author has designed a server, [alived](https://github.com/epics-alive-server/alived).
 
 - - - - - -
 
-2. Heartbeat Processing
-=======================
+Heartbeat Processing
+--------------------
 
  The first thing is to make sure that the alive record is sending heartbeats UDP packets to the server (from __RHOST__) at the expected UDP port (from __RPORT__), and at the expected rate determined from the __HPRD__ period.
 
@@ -37,8 +35,8 @@ Dohn Arms
  
   __Return Port__ (16-bit) - __IPORT__   This is the port number to use for making a TCP callback to the alive record. If implementing callbacks, it should either be recorded or simply passed along to the callback routine. If the IOC was not able to create the callback port, a value of 0 will be here.   __User Message__ (32-bit) - __MSG__   This value has no set action. This value should either be recorded and/or acted on if used as a server flag. Multiple values or flags could be combined in this value, and might need to be split out.  __IOC Name__ (variable length 8-bit)  This value should be recorded as the searchable key for the IOC data structure. It's the value of the *IOC* environment variable at the server.  - - - - - -
 
-3. Failure Detection and Up/Down Times
-======================================
+Failure Detection and Up/Down Times
+-----------------------------------
 
  When an IOC is turned off or crashes, there is no immediate detection of failure. This determination depends on the rate of heartbeats and the number of missing heartbeats. For a __HPRD__ rate of 15 seconds, a failure declared after four missing heartbeats would be a minute. This is fairly conservative, and if you are certain that the network between the IOCs and the server doesn't drop many packets, the packet number can be reduced; the __HPRD__ rate could also be increased, although that means more processing at the server.
 
@@ -53,7 +51,7 @@ Dohn Arms
 - - - - - -
 
 4. Callback Processing
-======================
+----------------------
 
  The TCP callback is used to get static information from the alive record. If the IOC was not able to create the callback port, the value of the Return Port will be 0, and a callback can't be made.
 

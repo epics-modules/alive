@@ -8,10 +8,9 @@ nav_order: 3
 alive Record
 ============
 
-Dohn Arms
 
 Introduction
-============
+------------
 
 The alive record is intended as a way to allow verification that an IOC is running. It is an active system, using heartbeat messages sent to a central server (such as [alived](https://github.com/epics-alive-server/alived)), which collects heartbeat messages and monitors the IOC statuses. The alive record also allows for the server to query extra information of the IOC, being environment variables (specified in the record) and system specific information (vxWorks boot line, Linux user, etc.)
 
@@ -19,11 +18,12 @@ This system has several important consequences. The server doesn't need to know 
 
 This record could be extended to monitor real-time parameters (such as memory use, etc.), but that is not what this record is intended for. Once a system is known to be up, one should use typical EPICS methods for these things (like devIocStats). However, there is the 32-bit __MSG__ field ("Message Value" on the screen) which can be used to send messages as defined by the user.
 
-![](aliveRecord.png) ![](aliveRecordEnvVars.png)- - - - - -
+![](aliveRecord.png) ![](aliveRecordEnvVars.png)
+- - - - - -
 
 
 Operation
-=========
+---------
 
 The alive record does not process normally, as most of what it does is done in two threads separate from normal record processing. One thread will send UDP heartbeats every __HPRD__ seconds to a main remote server and optionally an auxiliary server, while the other thread listens for connections from the remote server(s). When the record actually does process, the current heartbeat count is returned as __VAL__.
 
@@ -33,7 +33,7 @@ The default heartbeat period is 15 seconds, which allows for declaring failure a
 
 
 Record Fields
-=============
+-------------
 
 The __VAL__ field holds the current heartbeat value (initially zero), and is incremented each time a UDP heartbeat is sent, every __HPRD__ seconds, assuming __HRTBT__ is set to "On".
 
@@ -53,39 +53,39 @@ Names of the environment variables to be sent to the remote server upon request 
 
 The release version number of the record is kept in __VER__ as a string, in the form of "X-Y-Z". A development version will have a string in the form of "X-Y-Z-devA".
 
-| Field | Summary | Type | DCT | Initial | Access | Modify | Rec Proc Monitor | PP |
-|---|---|---|---|---|---|---|---|---|
-| VAL | Heartbeat Value | ULONG | No | 0 | Yes | No | No | No |
-| RHOST | Remote Host Name or IP Address | STRING | Yes |  | Yes | No | No | No |
-| RADDR | Remote Host IP Address | STRING | No |  | Yes | No | No | No |
-| RPORT | Remote Host UDP Port Number | USHORT | Yes | 0 | Yes | No | No | No |
-| RRSTS | Remote Host Read Status | Menu: Idle/Queued/Due/Overdue | Yes | Idle | Yes | No | No | No |
-| AHOST | Auxiliary Remote Host Name or IP Address | STRING | Yes |  | Yes | Yes | Yes | No |
-| AADDR | Auxiliary Remote Host IP Address | STRING | No |  | Yes | No | No | No |
-| APORT | Auxiliary Remote Host UDP Port Number | USHORT | Yes | 0 | Yes | Yes | Yes | No |
-| ARSTS | Auxiliary Remote Host Read Status | Menu: Idle/Queued/Due/Overdue | Yes | Idle | Yes | No | No | No |
-| HRTBT | Heartbeating State | Menu: Off/On | Yes | On | Yes | Yes | Yes | No |
-| HPRD | Heartbeat Period | USHORT | Yes | 15 | Yes | No | No | No |
-| IOCNM | IOC Name Value | STRING | Yes |  | Yes | No | No | No |
-| HMAG | Heartbeat Magic Number | ULONG | Yes | 305419896 | Yes | No | No | No |
-| MSG | Message to Send | LONG | Yes | 0 | Yes | Yes | No | No |
-| IPORT | TCP Information Port Number | USHORT | Yes | 0 | Yes | No | No | No |
-| IPSTS | Information Port Status | Menu: Undetermined/Operable/Inoperable | Yes | Undetermined | Yes | No | Yes | No |
-| ITRIG | Trigger Information Request | Menu: Idle/Trigger | Yes | Idle | Yes | Yes | Yes | No |
-| ISUP | Suppress Information Requests | Menu: Off/On | Yes | Off | Yes | Yes | Yes | No |
-| VER | Record Version | STRING | Yes |  | Yes | No | No | No |
-| EVD1 | Default Environment Variable Name 1 | STRING | Yes |  | Yes | No | No | No |
-| ... | ... | ... | ... | ... | ... | ... | ... | ... |
-| EVD16 | Default Environment Variable Name 16 | STRING | Yes |  | Yes | No | No | No |
-| EV1 | Environment Variable Name 1 | STRING | Yes |  | Yes | Yes | Yes | No |
-| ... | ... | ... | ... | ... | ... | ... | ... | ... |
-| EV16 | Environment Variable Name 16 | STRING | Yes |  | Yes | Yes | Yes | No |
+| Field |                    Summary               |                   Type                | DCT | Default | Access | Modify | Rec Proc Monitor | PP |
+|-------|------------------------------------------|---------------------------------------|-----|:-------:|--------|--------|------------------|----|
+| VAL   | Heartbeat Value                          | ULONG                                 | No  |    0    | Yes    | No     | No               | No |
+| RHOST | Remote Host Name or IP Address           | STRING                                | Yes |         | Yes    | No     | No               | No |
+| RADDR | Remote Host IP Address                   | STRING                                | No  |         | Yes    | No     | No               | No |
+| RPORT | Remote Host UDP Port Number              | USHORT                                | Yes |    0    | Yes    | No     | No               | No |
+| RRSTS | Remote Host Read Status                  | Menu: Idle/Queued/Due/Overdue         | Yes |  Idle   | Yes    | No     | No               | No |
+| AHOST | Aux. Remote Host Name or IP Address      | STRING                                | Yes |         | Yes    | Yes    | Yes              | No |
+| AADDR | Aux. Remote Host IP Address              | STRING                                | No  |         | Yes    | No     | No               | No |
+| APORT | Aux. Remote Host UDP Port Number         | USHORT                                | Yes |    0    | Yes    | Yes    | Yes              | No |
+| ARSTS | Aux. Remote Host Read Status             | Menu: Idle/Queued/Due/Overdue         | Yes |  Idle   | Yes    | No     | No               | No |
+| HRTBT | Heartbeating State                       | Menu: Off/On                          | Yes |   On    | Yes    | Yes    | Yes              | No |
+| HPRD  | Heartbeat Period                         | USHORT                                | Yes |   15    | Yes    | No     | No               | No |
+| IOCNM | IOC Name Value                           | STRING                                | Yes |         | Yes    | No     | No               | No |
+| HMAG  | Heartbeat Magic Number                   | ULONG                                 | Yes |305419896| Yes    | No     | No               | No |
+| MSG   | Message to Send                          | LONG                                  | Yes |    0    | Yes    | Yes    | No               | No |
+| IPORT | TCP Information Port Number              | USHORT                                | Yes |    0    | Yes    | No     | No               | No |
+| IPSTS | Information Port Status                  | Menu: Undetermined/Operable/Inoperable| Yes |Undetermined | Yes | No    | Yes              | No |
+| ITRIG | Trigger Information Request              | Menu: Idle/Trigger                    | Yes |  Idle   | Yes    | Yes    | Yes              | No |
+| ISUP  | Suppress Information Requests            | Menu: Off/On                          | Yes |   Off   | Yes    | Yes    | Yes              | No |
+| VER   | Record Version                           | STRING                                | Yes |         | Yes    | No     | No               | No |
+| EVD1  | Default Environment Variable Name 1      | STRING                                | Yes |         | Yes    | No     | No               | No |
+| ...   | ...                                      | ...                                   | ... |   ...   | ...    | ...    | ...              | ...|
+| EVD16 | Default Environment Variable Name 16     | STRING                                | Yes |         | Yes    | No     | No               | No |
+| EV1   | Environment Variable Name 1              | STRING                                | Yes |         | Yes    | Yes    | Yes              | No |
+| ...   | ...                                      | ...                                   | ... |   ...   | ...    | ...    | ...              | ...|
+| EV16  | Environment Variable Name 16             | STRING                                | Yes |         | Yes    | Yes    | Yes              | No |
 
 - - - - - -
 
 
 Record Support Routines
-=======================
+-----------------------
 
 ### init\_record
 
@@ -107,7 +107,7 @@ Changing the __RHOST__ field causes a check here to make sure that the string va
 
 
 Message Protocol
-================
+----------------
 
 This section describes the current protocol, version __5__. All messages sent use network order (big-endian).
 
