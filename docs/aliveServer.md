@@ -33,12 +33,18 @@ Heartbeat Processing
 __Magic Number__ (32-bit) - __HMAG__   This value is used by the server to weed out UDP packets sent to it that it does not expect or want. A server typically would allow only one number, but at its discretion could handle multiple magic numbers (different ones for different IOCs) or just accept all packets.  
 __Version of Protocol__ (16-bit)  This value signifies the version of the message protocol, and determines the fields that follow. A server can support multiple versions, or ignore all versions but one (forcing the IOC to match the version). The current value is __5__.  
 __Incarnation__ (32-bit)  This value should be recorded, and it serves two purposes. It is the recorded EPICS time when the record was initialized, hence it's a boot time (as measured by the IOC). It also acts as a unique identifier for the IOC session, and a change means that a boot happened and this is now a new session. If this value changes, one should reinitialize the IOC's data record as if it was new (as things may have been changed between boots).  
-__Current Time__ (32-bit)  This value should be recorded and is the current EPICS time as measured by the IOC.   __Heartbeat Value__ (32-bit) - __VAL__   This value should be recorded. It increases by one each time the remote alive record processes. If a packet with a lower heartbeat value arrives, it should be ignored as it came out of order.  __Period__ (16-bit)  This value should be recorded and is the period used for sending heartbeats, which can be used for determining failure.  
+__Current Time__ (32-bit)  This value should be recorded and is the current EPICS time as measured by the IOC.   
+__Heartbeat Value__ (32-bit) - __VAL__   This value should be recorded. It increases by one each time the remote alive record processes. If a packet with a lower heartbeat value arrives, it should be ignored as it came out of order.  
+__Period__ (16-bit)  This value should be recorded and is the period used for sending heartbeats, which can be used for determining failure.  
 __Flags__ (16-bit)  This value holds bit flags for the server, and they need to be acted on. Currently, the bits only deal with a TCP callback to the alive record.  
 - __Bit 0 (Read):__ Set when __ITRIG__ is set, or when a record field is updated. This means that the record wants the server to do a TCP callback to read its extra information. After a successful read, this will be cleared. If the server does not want to implement TCP callbacks, then this bit can be ignored.
 - __Bit 1 (Blocked):__ Set when __ISUP__ is set. This means that the server can't make a callback to the alive record. This bit overrides bit 0 (which operates independently). If an attempt to make a TCP callback is made by the server, it will be rejected. An IOC behind a firewall that does not allow TCP return traffic should have this permanently enabled to keep the server from endlessly trying to make a callback.
  
-__Return Port__ (16-bit) - __IPORT__   This is the port number to use for making a TCP callback to the alive record. If implementing callbacks, it should either be recorded or simply passed along to the callback routine. If the IOC was not able to create the callback port, a value of 0 will be here.   __User Message__ (32-bit) - __MSG__   This value has no set action. This value should either be recorded and/or acted on if used as a server flag. Multiple values or flags could be combined in this value, and might need to be split out.  __IOC Name__ (variable length 8-bit)  This value should be recorded as the searchable key for the IOC data structure. It's the value of the *IOC* environment variable at the server.  - - - - - -
+__Return Port__ (16-bit) - __IPORT__   This is the port number to use for making a TCP callback to the alive record. If implementing callbacks, it should either be recorded or simply passed along to the callback routine. If the IOC was not able to create the callback port, a value of 0 will be here.   
+__User Message__ (32-bit) - __MSG__   This value has no set action. This value should either be recorded and/or acted on if used as a server flag. Multiple values or flags could be combined in this value, and might need to be split out.  
+__IOC Name__ (variable length 8-bit)  This value should be recorded as the searchable key for the IOC data structure. It's the value of the *IOC* environment variable at the server.  
+
+- - - - - -
 
 
 Failure Detection and Up/Down Times
@@ -55,6 +61,7 @@ Failure Detection and Up/Down Times
  The down time for a failed IOC is the time since the last heartbeat.
 
 - - - - - -
+
 
 4. Callback Processing
 ----------------------
