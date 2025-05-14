@@ -8,8 +8,6 @@ nav_order: 2
 alive Module Documentation
 ==========================
 
-Dohn Arms
-
 [Release Notes](aliveReleaseNotes.html)
 
 Record
