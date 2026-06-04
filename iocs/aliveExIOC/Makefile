@@ -1,33 +1,24 @@
-#Makefile at top of application tree
 TOP = .
 include $(TOP)/configure/CONFIG
 DIRS := $(DIRS) $(filter-out $(DIRS), configure)
 DIRS := $(DIRS) $(filter-out $(DIRS), $(wildcard *App))
-
-ifeq ($(BUILD_IOCS), YES)
-DIRS := $(DIRS) $(filter-out $(DIRS), $(wildcard iocs))
-iocs_DEPEND_DIRS += aliveApp
-endif
-
-#Tests uses dbUnitTests.h from base-3.15
-ifdef BASE_3_15
-DIRS := $(DIRS) $(filter-out $(DIRS), tests)
-tests_DEPEND_DIRS += $(filter %App,$(DIRS))
-endif
+DIRS := $(DIRS) $(filter-out $(DIRS), $(wildcard iocBoot))
 
 define DIR_template
  $(1)_DEPEND_DIRS += configure
 endef
 $(foreach dir, $(filter-out configure,$(DIRS)),$(eval $(call DIR_template,$(dir))))
 
+iocBoot_DEPEND_DIRS += $(filter %App,$(DIRS))
+
 include $(TOP)/configure/RULES_TOP
 
 uninstall: uninstall_iocs
 uninstall_iocs:
-	$(MAKE) -C iocs uninstall
+	$(MAKE) -C iocBoot uninstall
 .PHONY: uninstall uninstall_iocs
 
 realuninstall: realuninstall_iocs
 realuninstall_iocs:
-	$(MAKE) -C iocs realuninstall
+	$(MAKE) -C iocBoot realuninstall
 .PHONY: realuninstall realuninstall_iocs

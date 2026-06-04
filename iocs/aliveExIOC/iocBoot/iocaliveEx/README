@@ -1,5 +1,5 @@
 To start the ioc from this directory execute the command
-    ../../bin/linux-x86_64/<appname> st.cmd
+    ../../bin/linux-x86_64/aliveExApp st.cmd
 
 Alternatively make the st.cmd file directly executable with
     chmod +x st.cmd
