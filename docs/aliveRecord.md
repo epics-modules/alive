@@ -1,13 +1,17 @@
 ---
 layout: default
 title: Alive Record
-nav_order: 3
+nav_order: 2
 ---
 
+# alive Record
+{: .no_toc}
 
-alive Record
-============
+## Table of contents
+{: .no_toc .text-delta }
 
+- TOC
+{:toc}
 
 Introduction
 ------------
@@ -49,6 +53,11 @@ The send a trigger flag to the remote server, signaling that it should reread th
 
 If one wants to suppress the server reading the boot information, __ISUP__ should be set to "On"; the record sends a suppress flag to the server, and will immediately close all connection that occur. This is useful if the IOC is behind a firewall that won't allow a direct TCP connection, telling the server to not endlessly try to read.
 
+{: .warning }
+> When __ISUP__ is set to "On", the record will immediately close
+> all TCP connections to the information port. The server will be
+> unable to read any environment variable or system information.
+
 Names of the environment variables to be sent to the remote server upon request are __EVD1__-__EVD16__ and __EV1__-__EV16__. If the length of the value of a variable is over 65535, an empty string will be sent back. The __EVD__ variables are set as defaults that aren't changed after boot, while the __EV__ variables are available to be used after boot. This separation allows global defaults to be set for all IOCs, while allowing variables to be added locally with disregard to the defaults.
 
 The release version number of the record is kept in __VER__ as a string, in the form of "X-Y-Z". A development version will have a string in the form of "X-Y-Z-devA".
@@ -88,6 +97,7 @@ Record Support Routines
 -----------------------
 
 ### init\_record
+---
 
 The current time is recorded as the IOC boot time. A UDP socket is opened for sending heartbeat messages. An address structure for the remote server is initialized, using __RHOST__ and __RPORT__, with the numeric IP address put into __RADDR__. The name of the IOC is read from the __IOCNM__ field, and if that is empty, from the "IOC" environment variable.
 
@@ -96,10 +106,12 @@ A thread is spawned for accepting TCP requests from the remote server on port __
 If the __HPRD__ is initially zero, then it is reassigned to the default value, which is currently 15.
 
 ### process
+---
 
 Nothing actually happens, other than the forward link get processed. Heartbeats are controlled purely by a timed thread.
 
 ### special
+---
 
 Changing the __RHOST__ field causes a check here to make sure that the string value is a properly formed IP address. If not, no sending heartbeats will occur.
 
@@ -115,7 +127,10 @@ This section describes the current protocol, version __5__. All messages sent us
 
 This is the UDP message sent for each processing of the record. The minimum size for a message payload is 30 bytes, being being fixed fields of 28 bytes with a null-terminated string. All values are unsigned.
 
-The time values sent are EPICS time values, which are relative to 1990. Converting them to standard Linux time values means adding a value of 631152000 (20 years of seconds) to each.
+{: .note }
+> The time values sent are EPICS time values, which are relative to
+> 1990. Converting them to standard Linux time values means adding
+> a value of 631152000 (20 years of seconds) to each.
 
 | Offset (bytes) |       Field     |
 |:--------------:|:---------------:|

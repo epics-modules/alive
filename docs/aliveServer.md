@@ -1,12 +1,17 @@
 ---
 layout: default
 title: Alive Server
-nav_order: 5
+nav_order: 4
 ---
 
+# alive Server Design
+{: .no_toc}
 
-alive Server Design
-===================
+## Table of contents
+{: .no_toc .text-delta }
+
+- TOC
+{:toc}
 
 Introduction
 ------------
@@ -24,7 +29,12 @@ Heartbeat Processing
 
  The first thing is to make sure that the alive record is sending heartbeats UDP packets to the server (from __RHOST__) at the expected UDP port (from __RPORT__), and at the expected rate determined from the __HPRD__ period.
 
- UDP packets will arrive at the server port from IOCs at this point. UDP packets are by their nature unreliable, with some getting dropped or delayed (so packets may arrive out of order), so the packet handling has to allow for this.
+{: .note }
+> UDP packets are by their nature unreliable, with some getting
+> dropped or delayed (so packets may arrive out of order). The
+> packet handling has to allow for this.
+
+ UDP packets will arrive at the server port from IOCs at this point.
 
  The IP address of the sending IOC is not included in the heartbeat. This is because there might be several active network interfaces, which make it not clear which one will be used for sending. When receiving the UDP packet, the IP address of the sender is given, which needs to be used for the IOC IP address. The IP address alone can't identify an IOC, as multiple IOCs can exist on one machine, which is why the *IOC* environment variable is used for identification.
 
@@ -63,8 +73,8 @@ Failure Detection and Up/Down Times
 - - - - - -
 
 
-4. Callback Processing
-----------------------
+Callback Processing
+-------------------
 
  The TCP callback is used to get static information from the alive record. If the IOC was not able to create the callback port, the value of the Return Port will be 0, and a callback can't be made.
 
