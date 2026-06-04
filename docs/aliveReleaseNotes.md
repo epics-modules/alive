@@ -13,6 +13,13 @@ nav_order: 2
 - TOC
 {:toc}
 
+Release 1-4-2
+-------------
+
+- **Automatic dependency configuration** -- Added cfg-based automatic dependency support. Downstream IOCs that define `ALIVE` in their `configure/RELEASE` will have the `ALIVE_IOC_DBDS` and `ALIVE_IOC_LIBS` macros available for use in their Makefiles (necessary DBD files and libraries to include alive, respectively).
+- **Example IOC relocated** -- Moved the example IOC application into `iocs/aliveExIOC/`.
+- **Documentation reorganization** -- Restructured documentation into separate pages for the user guide, record reference, server design, and message protocol.
+
 Release 1-4-1
 -------------
 
