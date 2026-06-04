@@ -26,7 +26,7 @@ How to build and use
 EPICS Database
 --------------
 
-alive.db
+### alive.db
 
 This database is a straight implementation of the alive record itself. It creates a record of the name "$(P)alive".
 
@@ -34,7 +34,7 @@ The name of the IOC sent back to the server is by default the value of the "IOC"
 
 The __RHOST__ is defined using "$(RHOST)". The rest of the fields that can be specified have defaults in them that can be overridden. The default for "$(RPORT)" is "5678", and for "$(HPRD)" is "15". If multiple IOC are to run on the same computer, then "$(IPORT)" for each IOC should have a different value, or all "$(IPORT)" values should be set to zero to allow the system to determine it. Only the first nine of the default environment variable fields, "$(EVD1)" to "$(EVD9)", have values, being "ARCH", "TOP", "EPICS\_BASE", "SUPPORT", "ENGINEER", "LOCATION", "GROUP", "STY", and "PROCSERV\_INFO".
 
-aliveMSGCalc.db
+### aliveMSGCalc.db
 
 This database consists of a calcout record that will periodically set the __MSG__ value of the IOC's alive record, based on status PV values of other *synApps* modules. The __MSG__ usage is undefined, but was intended for sending warnings if something bad happens, as a sequence of error bits. Currently, only the status of the autosave is being used. If the first bit of the __MSG__ is set, then autosave is dead.
 
@@ -45,11 +45,11 @@ There is an associated *aliveMSGCalc\_local.req* file. It does not use the norma
 MEDM display files
 ------------------
 
-aliveRecord.adl
+### aliveRecord.adl
 
 This is the medm ADL file for an alive record. All the fields, except for the environment variables to be sent, are exposed on this screen.
 
-aliveRecordEnvVars.adl
+### aliveRecordEnvVars.adl
 
 This is the medm ADL file for the environment variables to be sent by the alive record. The top values are the unchangeable defaults, while the bottom values can be changed at any time.
 
