@@ -4,7 +4,3 @@ include $(CONFIG)/RULES
 
 # Library should be rebuilt because LIBOBJS may have changed.
 $(LIBNAME): ../Makefile
-
-$(INSTALL_CFG)/%: $(COMMON_DIR)/%
-	$(ECHO) "Installing CFG file $@"
-	@$(INSTALL) -d -m $(INSTALL_PERMISSIONS) $< $(dir $@)
