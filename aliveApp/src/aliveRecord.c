@@ -72,9 +72,9 @@
 /* Create RSET - Record Support Entry Table */
 #define Report NULL
 #define Initialize NULL
-static long init_record();
-static long process();
-static long special();
+static long init_record(void *precord, int pass);
+static long process(aliveRecord *prec);
+static long special(DBADDR *paddr, int after);
 #define Get_value NULL
 #define Cvt_dbaddr NULL
 #define Get_array_info NULL
@@ -93,9 +93,9 @@ rset aliveRSET =
     RSETNUMBER,
     Report,
     Initialize,
-    init_record,
-    process,
-    special,
+    (DEVSUPFUN)init_record,
+    (DEVSUPFUN)process,
+    (DEVSUPFUN)special,
     Get_value,
     Cvt_dbaddr,
     Get_array_info,
